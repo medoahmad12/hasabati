@@ -64,6 +64,18 @@ fun DashboardScreen(
                     MiniStat("لي", Formatters.usd(snap?.customerReceivablesUsd ?: 0.0), Color(0xFFB9F5D8))
                     MiniStat("عليّ", Formatters.usd(snap?.agentPayableUsd ?: 0.0), Color(0xFFFFD1DC))
                 }
+
+                val cashSypTotal = (snap?.treasury?.cashSyp ?: 0.0) + (snap?.treasury?.shamCashSyp ?: 0.0)
+                val cashSarTotal = (snap?.treasury?.cashSar ?: 0.0) + (snap?.treasury?.shamCashSar ?: 0.0)
+                if (cashSypTotal > 0.5 || cashSarTotal > 0.5) {
+                    Spacer(Modifier.height(14.dp))
+                    Divider(color = Color.White.copy(alpha = 0.2f))
+                    Spacer(Modifier.height(10.dp))
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(24.dp)) {
+                        if (cashSypTotal > 0.5) MiniStat("معي بالليرة", Formatters.syp(cashSypTotal), Color.White.copy(alpha = 0.9f))
+                        if (cashSarTotal > 0.5) MiniStat("معي بالريال", Formatters.sar(cashSarTotal), Color.White.copy(alpha = 0.9f))
+                    }
+                }
             }
         }
 
@@ -88,14 +100,16 @@ fun DashboardScreen(
         item {
             LazyVerticalGrid(
                 columns = GridCells.Fixed(2),
-                modifier = Modifier.height(340.dp),
+                modifier = Modifier.height(450.dp),
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 item { StatCard("النقد بالدولار", Formatters.usd(snap?.treasury?.cashUsd ?: 0.0), "💵", SuccessGreen, Modifier.clickable2(onOpenTreasury)) }
                 item { StatCard("النقد بالليرة", Formatters.syp(snap?.treasury?.cashSyp ?: 0.0), "💴", WarningAmber, Modifier.clickable2(onOpenTreasury)) }
+                item { StatCard("النقد بالريال", Formatters.sar(snap?.treasury?.cashSar ?: 0.0), "💰", Color(0xFF2E86DE), Modifier.clickable2(onOpenTreasury)) }
                 item { StatCard("Sham Cash دولار", Formatters.usd(snap?.treasury?.shamCashUsd ?: 0.0), "📱", PurpleAccent, Modifier.clickable2(onOpenTreasury)) }
                 item { StatCard("Sham Cash ليرة", Formatters.syp(snap?.treasury?.shamCashSyp ?: 0.0), "📱", PurpleAccentLight, Modifier.clickable2(onOpenTreasury)) }
+                item { StatCard("Sham Cash ريال", Formatters.sar(snap?.treasury?.shamCashSar ?: 0.0), "📱", Color(0xFF0FA3B1), Modifier.clickable2(onOpenTreasury)) }
                 item { StatCard("مستحقات العملاء", Formatters.usd(snap?.customerReceivablesUsd ?: 0.0), "👥", Color(0xFF2E86DE), Modifier.clickable2(onOpenCustomersWithBalance)) }
                 item { StatCard("المستحق للوكيلة", Formatters.usd(snap?.agentPayableUsd ?: 0.0), "🏢", DangerRed, Modifier.clickable2(onOpenAgent)) }
                 item { StatCard("طلبات وصلت ولم تُسلّم", (snap?.arrivedNotDeliveredCount ?: 0).toString(), "📦", Color(0xFF0FA3B1), Modifier.clickable2(onOpenArrivedOrders)) }
@@ -172,7 +186,7 @@ private fun RecentTxRow(tx: com.hasabati.app.data.db.entities.Transaction) {
                 if (tx.note.isNotBlank()) Text(tx.note, style = MaterialTheme.typography.bodyMedium, color = TextSecondaryGray)
             }
             Text(
-                "$sign${if (tx.currency == com.hasabati.app.data.db.entities.Currency.USD) Formatters.usd(tx.amount) else Formatters.syp(tx.amount)}",
+                "$sign${Formatters.amount(tx.amount, tx.currency)}",
                 color = color, fontWeight = FontWeight.Bold
             )
         }

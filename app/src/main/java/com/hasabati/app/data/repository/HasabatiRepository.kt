@@ -247,7 +247,7 @@ class HasabatiRepository(private val db: AppDatabase) {
                     amount = amount,
                     currency = currency,
                     usdEquivalent = usdEq,
-                    exchangeRate = if (currency == Currency.SYP) exchangeRate else null,
+                    exchangeRate = if (currency != Currency.USD) exchangeRate else null,
                     method = method,
                     customerId = customerId,
                     orderId = orderId,
@@ -283,7 +283,7 @@ class HasabatiRepository(private val db: AppDatabase) {
                     amount = portionAmount,
                     currency = currency,
                     usdEquivalent = portionUsd,
-                    exchangeRate = if (currency == Currency.SYP) exchangeRate else null,
+                    exchangeRate = if (currency != Currency.USD) exchangeRate else null,
                     method = method,
                     customerId = customerId,
                     orderId = order.id,
@@ -302,7 +302,7 @@ class HasabatiRepository(private val db: AppDatabase) {
                     amount = portionAmount,
                     currency = currency,
                     usdEquivalent = remainingUsdToDistribute,
-                    exchangeRate = if (currency == Currency.SYP) exchangeRate else null,
+                    exchangeRate = if (currency != Currency.USD) exchangeRate else null,
                     method = method,
                     customerId = customerId,
                     orderId = null,
@@ -312,6 +312,35 @@ class HasabatiRepository(private val db: AppDatabase) {
         }
 
         return lastInsertedId
+    }
+
+    /**
+     * تحويل عملة إلى عملة أخرى (مثلاً ليرة سورية إلى دولار، أو ريال إلى ليرة) — تُدخل المستخدمة
+     * المبلغ الذي "خرج" والمبلغ الذي "دخل" فعلياً بدل إدخال سعر صرف مجرّد، فتُحسب القيمة الحقيقية
+     * دائماً من غير التباس باتجاه السعر. تُسجَّل كحركتين مرتبطتين بنفس مبدأ التحويل بين المحافظ.
+     */
+    suspend fun convertCurrency(
+        amountOut: Double, currencyOut: Currency, methodOut: PaymentMethod,
+        amountIn: Double, currencyIn: Currency, methodIn: PaymentMethod,
+        note: String = ""
+    ): Long {
+        require(amountOut > 0 && amountIn > 0) { "المبلغين يجب أن يكونا أكبر من صفر" }
+        txDao.insert(
+            Transaction(
+                type = TransactionType.TRANSFER_OUT,
+                amount = amountOut, currency = currencyOut, usdEquivalent = amountOut,
+                method = methodOut,
+                note = if (note.isBlank()) "تحويل عملة" else note
+            )
+        )
+        return txDao.insert(
+            Transaction(
+                type = TransactionType.TRANSFER_IN,
+                amount = amountIn, currency = currencyIn, usdEquivalent = amountIn,
+                method = methodIn,
+                note = if (note.isBlank()) "تحويل عملة" else note
+            )
+        )
     }
 
     /**
@@ -355,7 +384,7 @@ class HasabatiRepository(private val db: AppDatabase) {
             Transaction(
                 type = TransactionType.AGENT_PAYMENT,
                 amount = amount, currency = currency, usdEquivalent = usdEq,
-                exchangeRate = if (currency == Currency.SYP) exchangeRate else null,
+                exchangeRate = if (currency != Currency.USD) exchangeRate else null,
                 method = method, note = note
             )
         )
@@ -372,7 +401,7 @@ class HasabatiRepository(private val db: AppDatabase) {
             Transaction(
                 type = TransactionType.EXPENSE,
                 amount = amount, currency = currency, usdEquivalent = usdEq,
-                exchangeRate = if (currency == Currency.SYP) exchangeRate else null,
+                exchangeRate = if (currency != Currency.USD) exchangeRate else null,
                 method = method, expenseCategory = category, note = note
             )
         )
@@ -389,7 +418,7 @@ class HasabatiRepository(private val db: AppDatabase) {
             Transaction(
                 type = TransactionType.PERSONAL_WITHDRAWAL,
                 amount = amount, currency = currency, usdEquivalent = usdEq,
-                exchangeRate = if (currency == Currency.SYP) exchangeRate else null,
+                exchangeRate = if (currency != Currency.USD) exchangeRate else null,
                 method = method, note = note
             )
         )
@@ -406,7 +435,7 @@ class HasabatiRepository(private val db: AppDatabase) {
             Transaction(
                 type = if (isInitial) TransactionType.CAPITAL_INITIAL else TransactionType.CAPITAL_ADDITION,
                 amount = amount, currency = currency, usdEquivalent = usdEq,
-                exchangeRate = if (currency == Currency.SYP) exchangeRate else null,
+                exchangeRate = if (currency != Currency.USD) exchangeRate else null,
                 method = method, note = note
             )
         )

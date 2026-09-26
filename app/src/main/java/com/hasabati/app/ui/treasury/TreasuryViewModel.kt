@@ -25,4 +25,13 @@ class TreasuryViewModel(private val repository: HasabatiRepository) : ViewModel(
     fun transferToCash(amount: Double, currency: Currency) {
         viewModelScope.launch { repository.transferShamCashToCash(amount, currency) }
     }
+
+    fun convertCurrency(
+        amountOut: Double, currencyOut: Currency, methodOut: com.hasabati.app.data.db.entities.PaymentMethod,
+        amountIn: Double, currencyIn: Currency, methodIn: com.hasabati.app.data.db.entities.PaymentMethod
+    ) {
+        viewModelScope.launch {
+            repository.convertCurrency(amountOut, currencyOut, methodOut, amountIn, currencyIn, methodIn)
+        }
+    }
 }

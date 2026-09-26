@@ -95,7 +95,7 @@ class NewOrderViewModel(private val repository: HasabatiRepository) : ViewModel(
                 }
 
                 val depositAmount = if (s.hasDeposit) s.depositAmount.toDoubleOrNull() else null
-                val depositRate = if (s.hasDeposit && s.depositCurrency == Currency.SYP) s.depositExchangeRate.toDoubleOrNull() else null
+                val depositRate = if (s.hasDeposit && s.depositCurrency != Currency.USD) s.depositExchangeRate.toDoubleOrNull() else null
 
                 val orderId = repository.createOrder(
                     customerId = customerId,

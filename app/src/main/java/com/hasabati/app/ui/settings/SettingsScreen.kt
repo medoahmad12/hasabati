@@ -218,7 +218,7 @@ private fun CapitalDialog(
                         FilterChip(selected = method == m, onClick = { method = m }, label = { Text(m.arabicLabel) }, modifier = Modifier.padding(end = 8.dp))
                     }
                 }
-                if (currency == Currency.SYP) {
+                if (currency != Currency.USD) {
                     OutlinedTextField(value = rate, onValueChange = { rate = it }, label = { Text("سعر الصرف") }, modifier = Modifier.fillMaxWidth().padding(top = 8.dp))
                 }
             }
@@ -226,7 +226,7 @@ private fun CapitalDialog(
         confirmButton = {
             TextButton(onClick = {
                 val amt = amount.toDoubleOrNull() ?: return@TextButton
-                onSave(isInitial, amt, currency, method, if (currency == Currency.SYP) rate.toDoubleOrNull() else null)
+                onSave(isInitial, amt, currency, method, if (currency != Currency.USD) rate.toDoubleOrNull() else null)
             }) { Text("حفظ") }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text("إلغاء") } }

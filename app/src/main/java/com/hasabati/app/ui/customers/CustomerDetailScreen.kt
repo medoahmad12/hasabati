@@ -152,7 +152,7 @@ fun SimplePaymentDialog(
                         FilterChip(selected = method == m, onClick = { method = m }, label = { Text(m.arabicLabel) }, modifier = Modifier.padding(end = 8.dp))
                     }
                 }
-                if (currency == Currency.SYP) {
+                if (currency != Currency.USD) {
                     OutlinedTextField(value = rate, onValueChange = { rate = it }, label = { Text("سعر الصرف") }, modifier = Modifier.fillMaxWidth().padding(top = 8.dp))
                 }
             }
@@ -160,7 +160,7 @@ fun SimplePaymentDialog(
         confirmButton = {
             TextButton(onClick = {
                 val amt = amount.toDoubleOrNull() ?: return@TextButton
-                onConfirm(amt, currency, method, if (currency == Currency.SYP) rate.toDoubleOrNull() else null)
+                onConfirm(amt, currency, method, if (currency != Currency.USD) rate.toDoubleOrNull() else null)
             }) { Text("تأكيد") }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text("إلغاء") } }

@@ -31,22 +31,27 @@ object FinanceEngine {
     data class TreasurySnapshot(
         val cashUsd: Double = 0.0,
         val cashSyp: Double = 0.0,
+        val cashSar: Double = 0.0,
         val shamCashUsd: Double = 0.0,
-        val shamCashSyp: Double = 0.0
+        val shamCashSyp: Double = 0.0,
+        val shamCashSar: Double = 0.0
     )
 
     fun treasury(transactions: List<Transaction>): TreasurySnapshot {
-        var cashUsd = 0.0; var cashSyp = 0.0; var shamUsd = 0.0; var shamSyp = 0.0
+        var cashUsd = 0.0; var cashSyp = 0.0; var cashSar = 0.0
+        var shamUsd = 0.0; var shamSyp = 0.0; var shamSar = 0.0
         for (t in transactions) {
             val signed = t.amount * treasurySign(t.type)
             when (t.method to t.currency) {
                 PaymentMethod.CASH to Currency.USD -> cashUsd += signed
                 PaymentMethod.CASH to Currency.SYP -> cashSyp += signed
+                PaymentMethod.CASH to Currency.SAR -> cashSar += signed
                 PaymentMethod.SHAM_CASH to Currency.USD -> shamUsd += signed
                 PaymentMethod.SHAM_CASH to Currency.SYP -> shamSyp += signed
+                PaymentMethod.SHAM_CASH to Currency.SAR -> shamSar += signed
             }
         }
-        return TreasurySnapshot(cashUsd, cashSyp, shamUsd, shamSyp)
+        return TreasurySnapshot(cashUsd, cashSyp, cashSar, shamUsd, shamSyp, shamSar)
     }
 
     /** صافي ما دفعته عميلة معيّنة بالدولار المحاسبي (دفعات ناقص أي استرداد) */
@@ -123,7 +128,10 @@ object FinanceEngine {
         return "ORD-$next"
     }
 
-    /** يحول مبلغاً بالليرة السورية إلى قيمته بالدولار حسب سعر صرف مُعطى */
+    /** يحول مبلغاً بأي عملة غير الدولار (ليرة سورية أو ريال سعودي) إلى قيمته بالدولار حسب سعر صرف مُعطى (وحدات تلك العملة مقابل 1$) */
     fun sypToUsd(amountSyp: Double, exchangeRate: Double): Double =
         if (exchangeRate <= 0) 0.0 else amountSyp / exchangeRate
+
+    /** اسم أوضح لنفس الدالة أعلاه — تحويل أي عملة أجنبية (SYP أو SAR) إلى الدولار */
+    fun foreignToUsd(amount: Double, exchangeRate: Double): Double = sypToUsd(amount, exchangeRate)
 }

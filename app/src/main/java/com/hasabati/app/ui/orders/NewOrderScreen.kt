@@ -165,7 +165,7 @@ fun NewOrderScreen(onBack: () -> Unit, onSaved: (Long) -> Unit) {
                         }
                     }
                 }
-                if (state.depositCurrency == Currency.SYP) {
+                if (state.depositCurrency != Currency.USD) {
                     item {
                         OutlinedTextField(
                             value = state.depositExchangeRate, onValueChange = { vm.setDepositExchangeRate(it) },

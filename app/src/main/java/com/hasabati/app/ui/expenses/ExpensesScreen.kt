@@ -52,7 +52,7 @@ fun ExpensesScreen() {
                                 if (tx.note.isNotBlank()) Text(tx.note, color = TextSecondaryGray, style = MaterialTheme.typography.bodyMedium)
                             }
                             Text(
-                                "-${if (tx.currency == Currency.USD) Formatters.usd(tx.amount) else Formatters.syp(tx.amount)}",
+                                "-${Formatters.amount(tx.amount, tx.currency)}",
                                 color = DangerRed, fontWeight = FontWeight.Bold
                             )
                         }
@@ -107,7 +107,7 @@ private fun AddExpenseDialog(
                         FilterChip(selected = method == m, onClick = { method = m }, label = { Text(m.arabicLabel) }, modifier = Modifier.padding(end = 8.dp))
                     }
                 }
-                if (currency == Currency.SYP) {
+                if (currency != Currency.USD) {
                     Spacer(Modifier.height(8.dp))
                     OutlinedTextField(value = rate, onValueChange = { rate = it }, label = { Text("سعر الصرف") }, modifier = Modifier.fillMaxWidth())
                 }
@@ -118,7 +118,7 @@ private fun AddExpenseDialog(
         confirmButton = {
             TextButton(onClick = {
                 val amt = amount.toDoubleOrNull() ?: return@TextButton
-                onSave(amt, currency, method, if (currency == Currency.SYP) rate.toDoubleOrNull() else null, category, note)
+                onSave(amt, currency, method, if (currency != Currency.USD) rate.toDoubleOrNull() else null, category, note)
             }) { Text("حفظ") }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text("إلغاء") } }

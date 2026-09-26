@@ -13,7 +13,8 @@ enum class OrderStatus(val arabicLabel: String) {
 /** العملة */
 enum class Currency(val arabicLabel: String) {
     USD("دولار"),
-    SYP("ليرة سورية")
+    SYP("ليرة سورية"),
+    SAR("ريال سعودي")
 }
 
 /** طريقة الدفع / مكان الأموال */
