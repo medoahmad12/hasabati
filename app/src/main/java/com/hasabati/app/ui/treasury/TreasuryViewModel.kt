@@ -2,6 +2,7 @@ package com.hasabati.app.ui.treasury
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.hasabati.app.data.db.entities.Currency
 import com.hasabati.app.data.db.entities.Transaction
 import com.hasabati.app.data.repository.HasabatiRepository
 import com.hasabati.app.domain.FinanceEngine
@@ -9,8 +10,9 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 
-class TreasuryViewModel(repository: HasabatiRepository) : ViewModel() {
+class TreasuryViewModel(private val repository: HasabatiRepository) : ViewModel() {
     data class UiState(
         val snapshot: FinanceEngine.TreasurySnapshot = FinanceEngine.TreasurySnapshot(),
         val transactions: List<Transaction> = emptyList()
@@ -19,4 +21,8 @@ class TreasuryViewModel(repository: HasabatiRepository) : ViewModel() {
     val uiState: StateFlow<UiState> = repository.observeTransactions().map { txs ->
         UiState(FinanceEngine.treasury(txs), txs.sortedByDescending { it.createdAt })
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), UiState())
+
+    fun transferToCash(amount: Double, currency: Currency) {
+        viewModelScope.launch { repository.transferShamCashToCash(amount, currency) }
+    }
 }

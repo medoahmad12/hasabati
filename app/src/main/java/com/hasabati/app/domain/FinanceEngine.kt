@@ -14,15 +14,17 @@ import com.hasabati.app.data.db.entities.TransactionType
  */
 object FinanceEngine {
 
-    /** أثر العملية على الخزينة: +1 تزيد / -1 تنقص / null لا تؤثر على الخزينة إطلاقاً */
+    /** أثر العملية على الخزينة: +1 تزيد / -1 تنقص */
     private fun treasurySign(type: TransactionType): Int = when (type) {
         TransactionType.CUSTOMER_PAYMENT -> 1
         TransactionType.CAPITAL_ADDITION -> 1
         TransactionType.CAPITAL_INITIAL -> 1
+        TransactionType.TRANSFER_IN -> 1
         TransactionType.AGENT_PAYMENT -> -1
         TransactionType.EXPENSE -> -1
         TransactionType.PERSONAL_WITHDRAWAL -> -1
         TransactionType.REFUND -> -1
+        TransactionType.TRANSFER_OUT -> -1
         TransactionType.ADJUSTMENT -> 1 // amount نفسه قد يكون موجباً أو سالباً في حالة التصحيح
     }
 
@@ -76,15 +78,16 @@ object FinanceEngine {
     }
 
     /**
-     * المستحق للوكيلة: يُحسب فقط من الطلبات التي وصلت وتم تأكيد تكلفتها الفعلية
-     * (القاعدة 9 و10: لا دين للوكيلة لمجرد إنشاء الطلب).
+     * المستحق للوكيلة: يُحسب من كل الطلبات غير الملغاة فور إنشائها (بالتكلفة المتوقعة)،
+     * وبمجرد تأكيد وصول الطلب وتثبيت التكلفة الفعلية يُستبدل الرقم المتوقع بالفعلي تلقائياً.
+     * هذا يعكس طلب المستخدمة: تكلفة الشراء تُرحَّل كذمة مستحقة للوكيلة من لحظة تأكيد الطلب.
      */
     fun agentPayableUsd(orders: List<Order>, transactions: List<Transaction>): Double {
-        val totalActualCost = orders.filter { it.actualCostUsd != null && it.status != OrderStatus.CANCELLED }
-            .sumOf { it.actualCostUsd ?: 0.0 }
+        val totalOwed = orders.filter { it.status != OrderStatus.CANCELLED }
+            .sumOf { it.actualCostUsd ?: it.expectedCostUsd }
         val totalPaidToAgent = transactions.filter { it.type == TransactionType.AGENT_PAYMENT }
             .sumOf { it.usdEquivalent }
-        return (totalActualCost - totalPaidToAgent)
+        return (totalOwed - totalPaidToAgent)
     }
 
     data class CapitalSnapshot(

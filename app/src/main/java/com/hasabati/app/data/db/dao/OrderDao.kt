@@ -17,6 +17,9 @@ interface OrderDao {
     @Query("SELECT * FROM orders WHERE customerId = :customerId ORDER BY createdAt DESC")
     fun observeForCustomer(customerId: Long): Flow<List<Order>>
 
+    @Query("SELECT * FROM orders WHERE customerId = :customerId ORDER BY createdAt ASC")
+    suspend fun getForCustomerOnce(customerId: Long): List<Order>
+
     @Query("SELECT * FROM orders WHERE id = :id")
     fun observeById(id: Long): Flow<Order?>
 

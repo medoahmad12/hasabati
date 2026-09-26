@@ -1,5 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
-<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="108dp" android:height="108dp" android:viewportWidth="108" android:viewportHeight="108">
-    <path android:fillColor="#FFFFFF" android:pathData="M30,38 h48 a8,8 0 0 1 8,8 v24 a8,8 0 0 1 -8,8 h-48 a8,8 0 0 1 -8,-8 v-24 a8,8 0 0 1 8,-8 z"/>
-    <path android:fillColor="#7C5CFC" android:pathData="M68,54 m-10,0 a10,10 0 1,0 20,0 a10,10 0 1,0 -20,0"/>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- جسم المحفظة -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M26,40 h56 a6,6 0 0 1 6,6 v22 a6,6 0 0 1 -6,6 h-56 a6,6 0 0 1 -6,-6 v-22 a6,6 0 0 1 6,-6 z" />
+    <!-- غطاء المحفظة العلوي -->
+    <path
+        android:fillColor="#F0EEFF"
+        android:pathData="M32,34 h44 a6,6 0 0 1 6,6 v4 h-56 v-4 a6,6 0 0 1 6,-6 z" />
+    <!-- عملة/زر المحفظة -->
+    <path
+        android:fillColor="#4B3FBF"
+        android:pathData="M70,51 m-9,0 a9,9 0 1,0 18,0 a9,9 0 1,0 -18,0" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M70,46.5 v9 M66.2,49 h7.6 M66.2,53 h7.6"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="1.6" />
 </vector>

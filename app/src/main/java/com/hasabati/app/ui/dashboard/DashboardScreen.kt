@@ -15,11 +15,13 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.hasabati.app.data.db.entities.TransactionType
 import com.hasabati.app.ui.common.*
 import com.hasabati.app.ui.theme.*
@@ -45,25 +47,22 @@ fun DashboardScreen(
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
         item {
-            Text("حساباتي", style = MaterialTheme.typography.headlineMedium, color = NavySurface)
-            Text("الوضع المالي اليوم", color = TextSecondaryGray)
+            Text("حساباتي", style = MaterialTheme.typography.headlineMedium, color = TextPrimaryDark, fontWeight = FontWeight.Bold)
+            Text("نظرة سريعة على وضعك المالي اليوم", color = TextSecondaryGray)
         }
 
         item {
-            Card(
-                shape = RoundedCornerShape(20.dp),
-                colors = CardDefaults.cardColors(containerColor = NavySurface),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Column(Modifier.padding(20.dp)) {
-                    Text("الوضع المالي", color = Color.White.copy(alpha = 0.7f), style = MaterialTheme.typography.bodyMedium)
-                    Spacer(Modifier.height(12.dp))
-                    val cashTotal = (snap?.treasury?.cashUsd ?: 0.0) + (snap?.treasury?.shamCashUsd ?: 0.0)
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        MiniStat("معي", Formatters.usd(cashTotal), Color.White)
-                        MiniStat("لي", Formatters.usd(snap?.customerReceivablesUsd ?: 0.0), Color(0xFF9FE8B5))
-                        MiniStat("عليّ", Formatters.usd(snap?.agentPayableUsd ?: 0.0), Color(0xFFF3B6B6))
-                    }
+            GradientHeroCard(modifier = Modifier.fillMaxWidth()) {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                    Text("الوضع المالي", color = Color.White.copy(alpha = 0.85f), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                    Text("💼", fontSize = 22.sp)
+                }
+                Spacer(Modifier.height(16.dp))
+                val cashTotal = (snap?.treasury?.cashUsd ?: 0.0) + (snap?.treasury?.shamCashUsd ?: 0.0)
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    MiniStat("معي", Formatters.usd(cashTotal), Color.White)
+                    MiniStat("لي", Formatters.usd(snap?.customerReceivablesUsd ?: 0.0), Color(0xFFB9F5D8))
+                    MiniStat("عليّ", Formatters.usd(snap?.agentPayableUsd ?: 0.0), Color(0xFFFFD1DC))
                 }
             }
         }
@@ -161,7 +160,8 @@ private fun AttentionRow(text: String) {
 
 @Composable
 private fun RecentTxRow(tx: com.hasabati.app.data.db.entities.Transaction) {
-    val isPositive = tx.type == TransactionType.CUSTOMER_PAYMENT || tx.type == TransactionType.CAPITAL_ADDITION || tx.type == TransactionType.CAPITAL_INITIAL
+    val isPositive = tx.type == TransactionType.CUSTOMER_PAYMENT || tx.type == TransactionType.CAPITAL_ADDITION ||
+        tx.type == TransactionType.CAPITAL_INITIAL || tx.type == TransactionType.TRANSFER_IN
     val color = if (isPositive) SuccessGreen else DangerRed
     val sign = if (isPositive) "+" else "-"
     Card(shape = RoundedCornerShape(14.dp), colors = CardDefaults.cardColors(containerColor = Color.White), border = androidx.compose.foundation.BorderStroke(1.dp, BorderGray), modifier = Modifier.fillMaxWidth()) {

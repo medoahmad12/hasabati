@@ -34,7 +34,9 @@ enum class TransactionType(val arabicLabel: String) {
     CAPITAL_ADDITION("إضافة رأس مال"),
     CAPITAL_INITIAL("رأس مال ابتدائي"),
     REFUND("استرداد عربون"),
-    ADJUSTMENT("تصحيح/تعديل")
+    ADJUSTMENT("تصحيح/تعديل"),
+    TRANSFER_OUT("تحويل (سحب)"),
+    TRANSFER_IN("تحويل (إيداع)")
 }
 
 /** فئات المصاريف المقترحة */

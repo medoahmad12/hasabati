@@ -61,14 +61,12 @@ fun SettingsScreen() {
 
         item { SectionTitle("رأس المال") }
         item {
-            Card(shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = NavySurface)) {
-                Column(Modifier.padding(16.dp)) {
-                    CapitalRow("رأس المال الابتدائي", Formatters.usd(state.capital.initial))
-                    CapitalRow("الإضافات", Formatters.usd(state.capital.additions))
-                    CapitalRow("السحوبات الشخصية", Formatters.usd(state.capital.withdrawals))
-                    Divider(Modifier.padding(vertical = 8.dp), color = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.15f))
-                    CapitalRow("الصافي", Formatters.usd(state.capital.netCapital), bold = true)
-                }
+            GradientHeroCard(modifier = Modifier.fillMaxWidth()) {
+                CapitalRow("رأس المال الابتدائي", Formatters.usd(state.capital.initial))
+                CapitalRow("الإضافات", Formatters.usd(state.capital.additions))
+                CapitalRow("السحوبات الشخصية", Formatters.usd(state.capital.withdrawals))
+                Divider(Modifier.padding(vertical = 8.dp), color = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.2f))
+                CapitalRow("الصافي", Formatters.usd(state.capital.netCapital), bold = true)
             }
         }
         item {

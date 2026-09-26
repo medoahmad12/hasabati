@@ -10,7 +10,8 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import com.hasabati.app.ui.theme.DangerRed
-import com.hasabati.app.ui.theme.NavySurface
+import com.hasabati.app.ui.theme.GradientEnd
+import com.hasabati.app.ui.theme.GradientStart
 import com.hasabati.app.ui.theme.PurpleAccent
 
 /** شاشة قفل بسيطة تظهر عند تفعيل PIN (القسم 33) */
@@ -20,7 +21,9 @@ fun PinLockScreen(correctPin: String, onUnlocked: () -> Unit) {
     var error by remember { mutableStateOf(false) }
 
     Box(
-        modifier = Modifier.fillMaxSize().background(NavySurface),
+        modifier = Modifier.fillMaxSize().background(
+            androidx.compose.ui.graphics.Brush.linearGradient(colors = listOf(GradientStart, GradientEnd))
+        ),
         contentAlignment = Alignment.Center
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(32.dp)) {

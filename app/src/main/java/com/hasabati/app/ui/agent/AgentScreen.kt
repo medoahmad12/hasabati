@@ -33,21 +33,23 @@ fun AgentScreen() {
         ) {
             item { Text("حساب الوكيلة", style = MaterialTheme.typography.headlineMedium) }
             item {
-                Card(shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = NavySurface)) {
-                    Column(Modifier.padding(18.dp)) {
-                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Text("إجمالي مستحق للوكيلة", color = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.75f))
-                            Text(Formatters.usd(state.totalOwedUsd), color = androidx.compose.ui.graphics.Color.White, fontWeight = FontWeight.Bold)
-                        }
-                        Row(Modifier.fillMaxWidth().padding(top = 8.dp), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Text("المدفوع", color = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.75f))
-                            Text(Formatters.usd(state.paidUsd), color = SuccessGreen, fontWeight = FontWeight.Bold)
-                        }
-                        Divider(Modifier.padding(vertical = 10.dp), color = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.15f))
-                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Text("المتبقي", color = androidx.compose.ui.graphics.Color.White)
-                            Text(Formatters.usd(state.remainingUsd), color = if (state.remainingUsd > 0.009) DangerRed else SuccessGreen, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                        }
+                GradientHeroCard(modifier = Modifier.fillMaxWidth()) {
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text("إجمالي مستحق للوكيلة", color = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.8f))
+                        Text(Formatters.usd(state.totalOwedUsd), color = androidx.compose.ui.graphics.Color.White, fontWeight = FontWeight.Bold)
+                    }
+                    Row(Modifier.fillMaxWidth().padding(top = 8.dp), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text("المدفوع", color = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.8f))
+                        Text(Formatters.usd(state.paidUsd), color = androidx.compose.ui.graphics.Color(0xFFB9F5D8), fontWeight = FontWeight.Bold)
+                    }
+                    Divider(Modifier.padding(vertical = 10.dp), color = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.2f))
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text("المتبقي", color = androidx.compose.ui.graphics.Color.White)
+                        Text(
+                            Formatters.usd(state.remainingUsd),
+                            color = if (state.remainingUsd > 0.009) androidx.compose.ui.graphics.Color(0xFFFFD1DC) else androidx.compose.ui.graphics.Color(0xFFB9F5D8),
+                            style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold
+                        )
                     }
                 }
             }

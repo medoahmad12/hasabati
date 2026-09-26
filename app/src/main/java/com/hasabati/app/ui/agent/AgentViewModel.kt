@@ -22,7 +22,7 @@ class AgentViewModel(private val repository: HasabatiRepository) : ViewModel() {
         repository.observeOrders(),
         repository.observeTransactions()
     ) { orders, txs ->
-        val totalOwed = orders.filter { it.actualCostUsd != null && it.status.name != "CANCELLED" }.sumOf { it.actualCostUsd ?: 0.0 }
+        val totalOwed = orders.filter { it.status.name != "CANCELLED" }.sumOf { it.actualCostUsd ?: it.expectedCostUsd }
         val paid = txs.filter { it.type.name == "AGENT_PAYMENT" }.sumOf { it.usdEquivalent }
         UiState(
             totalOwedUsd = totalOwed,

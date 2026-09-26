@@ -46,19 +46,17 @@ fun CustomerDetailScreen(customerId: Long, onBack: () -> Unit, onOpenOrder: (Lon
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             item {
-                Card(shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = NavySurface)) {
-                    Column(Modifier.padding(16.dp)) {
-                        if (state.customer?.phone?.isNotBlank() == true) {
-                            Text(state.customer?.phone ?: "", color = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.7f))
-                            Spacer(Modifier.height(6.dp))
-                        }
-                        Text("الرصيد المتبقي", color = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.7f))
-                        Text(
-                            Formatters.usd(state.remainingUsd),
-                            color = if (state.remainingUsd > 0.009) Color(0xFFF3B6B6) else Color(0xFF9FE8B5),
-                            style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold
-                        )
+                GradientHeroCard(modifier = Modifier.fillMaxWidth()) {
+                    if (state.customer?.phone?.isNotBlank() == true) {
+                        Text(state.customer?.phone ?: "", color = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.8f))
+                        Spacer(Modifier.height(6.dp))
                     }
+                    Text("الرصيد المتبقي", color = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.8f))
+                    Text(
+                        Formatters.usd(state.remainingUsd),
+                        color = if (state.remainingUsd > 0.009) Color(0xFFFFD1DC) else Color(0xFFB9F5D8),
+                        style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold
+                    )
                 }
             }
 

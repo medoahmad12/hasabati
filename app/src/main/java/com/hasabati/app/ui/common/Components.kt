@@ -82,3 +82,28 @@ fun EmptyState(message: String, modifier: Modifier = Modifier) {
         Text(message, color = TextSecondaryGray, style = MaterialTheme.typography.bodyMedium)
     }
 }
+
+/**
+ * بطاقة تدرّج لونية أنيقة (بنفسجي → نيلي) تُستخدم لأهم رقم بكل شاشة (الوضع المالي،
+ * رصيد العميلة، حساب الوكيلة...) بدل الصندوق الداكن الثقيل السابق.
+ */
+@Composable
+fun GradientHeroCard(modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> Unit) {
+    Card(
+        modifier = modifier,
+        shape = RoundedCornerShape(22.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.Transparent),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .background(
+                    androidx.compose.ui.graphics.Brush.linearGradient(
+                        colors = listOf(com.hasabati.app.ui.theme.GradientStart, com.hasabati.app.ui.theme.GradientEnd)
+                    )
+                )
+                .padding(20.dp),
+            content = content
+        )
+    }
+}

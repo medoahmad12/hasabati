@@ -16,6 +16,9 @@ interface TransactionDao {
     @Query("SELECT * FROM transactions WHERE customerId = :customerId ORDER BY createdAt ASC")
     fun observeForCustomer(customerId: Long): Flow<List<Transaction>>
 
+    @Query("SELECT * FROM transactions WHERE customerId = :customerId ORDER BY createdAt ASC")
+    suspend fun getForCustomerOnce(customerId: Long): List<Transaction>
+
     @Query("SELECT * FROM transactions WHERE orderId = :orderId ORDER BY createdAt ASC")
     fun observeForOrder(orderId: Long): Flow<List<Transaction>>
 

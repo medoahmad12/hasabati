@@ -55,10 +55,11 @@ fun HasabatiNavGraph() {
                     NavigationBarItem(
                         selected = selected,
                         onClick = {
+                            // ننتقل مباشرة ونمسح أي شاشات وسيطة (تفاصيل طلب/عميلة...) حتى يعمل
+                            // زر "الرئيسية" وباقي التبويبات فوراً من أي مكان بالتطبيق بدون أي تعقيد.
                             navController.navigate(dest.route) {
-                                popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                                popUpTo(0)
                                 launchSingleTop = true
-                                restoreState = true
                             }
                         },
                         icon = { Icon(if (selected) dest.selectedIcon else dest.icon, contentDescription = dest.label) },

@@ -155,7 +155,7 @@ class HasabatiRepository(private val db: AppDatabase) {
         orderDao.update(order.copy(status = newStatus))
     }
 
-    /** تأكيد وصول الطلب وتسجيل التكلفة الفعلية لكل منتج (القسم 11) — هنا فقط ينشأ دين الوكيلة. */
+    /** تأكيد وصول الطلب وتسجيل التكلفة الفعلية لكل منتج (القسم 11) — يُستبدل هنا الرقم المتوقع للوكيلة بالتكلفة الفعلية. */
     suspend fun confirmArrival(orderId: Long, actualUnitCosts: Map<Long, Double>) {
         val order = orderDao.getById(orderId) ?: return
         val items = orderDao.getItems(orderId)
@@ -218,7 +218,13 @@ class HasabatiRepository(private val db: AppDatabase) {
     // العمليات المالية
     // ---------------------------------------------------------------------
 
-    /** تحصيل دفعة من عميلة (عربون أو تسديد) — القسم 16 */
+    /**
+     * تحصيل دفعة من عميلة (عربون أو تسديد) — القسم 16.
+     * إذا حُدِّد [orderId] تُسجَّل الدفعة على هذا الطلب مباشرة (حالة العربون وتحصيل دفعة من داخل الطلب).
+     * إذا لم يُحدَّد طلب (دفعة عامة من صفحة العميلة)، تُوزَّع الدفعة تلقائياً على أقدم
+     * طلبات العميلة غير المسددة أولاً بأول، حتى تنعكس بدقة على كل طلب على حدة وليس فقط
+     * على إجمالي حساب العميلة.
+     */
     suspend fun recordCustomerPayment(
         customerId: Long,
         orderId: Long?,
@@ -233,17 +239,107 @@ class HasabatiRepository(private val db: AppDatabase) {
             requireNotNull(exchangeRate) { "سعر الصرف مطلوب عند الدفع بالليرة" }
             FinanceEngine.sypToUsd(amount, exchangeRate)
         }
-        return txDao.insert(
+
+        if (orderId != null) {
+            return txDao.insert(
+                Transaction(
+                    type = TransactionType.CUSTOMER_PAYMENT,
+                    amount = amount,
+                    currency = currency,
+                    usdEquivalent = usdEq,
+                    exchangeRate = if (currency == Currency.SYP) exchangeRate else null,
+                    method = method,
+                    customerId = customerId,
+                    orderId = orderId,
+                    note = note
+                )
+            )
+        }
+
+        // دفعة عامة بدون طلب محدد: توزيع تلقائي على الطلبات المستحقة، الأقدم أولاً
+        val orders = orderDao.getForCustomerOnce(customerId).filter { it.status != OrderStatus.CANCELLED }
+        val customerTxs = txDao.getForCustomerOnce(customerId)
+        var remainingUsdToDistribute = usdEq
+        var lastInsertedId = 0L
+
+        for (order in orders) {
+            if (remainingUsdToDistribute <= 0.009) break
+            val paidForOrder = customerTxs.filter { it.orderId == order.id }.sumOf {
+                when (it.type) {
+                    TransactionType.CUSTOMER_PAYMENT -> it.usdEquivalent
+                    TransactionType.REFUND -> -it.usdEquivalent
+                    else -> 0.0
+                }
+            }
+            val orderRemaining = (order.saleTotalUsd - paidForOrder).coerceAtLeast(0.0)
+            if (orderRemaining <= 0.009) continue
+
+            val portionUsd = minOf(remainingUsdToDistribute, orderRemaining)
+            val portionAmount = if (currency == Currency.USD) portionUsd else portionUsd * (exchangeRate ?: 1.0)
+
+            lastInsertedId = txDao.insert(
+                Transaction(
+                    type = TransactionType.CUSTOMER_PAYMENT,
+                    amount = portionAmount,
+                    currency = currency,
+                    usdEquivalent = portionUsd,
+                    exchangeRate = if (currency == Currency.SYP) exchangeRate else null,
+                    method = method,
+                    customerId = customerId,
+                    orderId = order.id,
+                    note = if (note.isBlank()) "دفعة موزّعة على الطلب ${order.orderNumber}" else note
+                )
+            )
+            remainingUsdToDistribute -= portionUsd
+        }
+
+        // أي مبلغ زائد بعد تغطية كل الطلبات المستحقة يُسجَّل كرصيد عام للعميلة (دفعة زائدة)
+        if (remainingUsdToDistribute > 0.009) {
+            val portionAmount = if (currency == Currency.USD) remainingUsdToDistribute else remainingUsdToDistribute * (exchangeRate ?: 1.0)
+            lastInsertedId = txDao.insert(
+                Transaction(
+                    type = TransactionType.CUSTOMER_PAYMENT,
+                    amount = portionAmount,
+                    currency = currency,
+                    usdEquivalent = remainingUsdToDistribute,
+                    exchangeRate = if (currency == Currency.SYP) exchangeRate else null,
+                    method = method,
+                    customerId = customerId,
+                    orderId = null,
+                    note = if (note.isBlank()) "دفعة زائدة عن المستحق الحالي" else note
+                )
+            )
+        }
+
+        return lastInsertedId
+    }
+
+    /**
+     * تحويل مبلغ من رصيد Sham Cash إلى نقد (Cash) بنفس العملة — عملية داخلية بين
+     * "جيوب" الخزينة، لا تُضيف ولا تُنقص أي مال حقيقي، فقط تُسجَّل كحركتين مرتبطتين
+     * (سحب من Sham Cash + إيداع في النقد) حتى يبقى سجل العمليات دقيقاً وقابلاً للمراجعة.
+     */
+    suspend fun transferShamCashToCash(amount: Double, currency: Currency, note: String = ""): Long {
+        require(amount > 0) { "المبلغ يجب أن يكون أكبر من صفر" }
+        val usdEq = if (currency == Currency.USD) amount else amount // للعملة SYP نُبقي القيمة كما هي كمرجع فقط؛ لا تدخل في حسابات الديون
+        txDao.insert(
             Transaction(
-                type = TransactionType.CUSTOMER_PAYMENT,
+                type = TransactionType.TRANSFER_OUT,
                 amount = amount,
                 currency = currency,
                 usdEquivalent = usdEq,
-                exchangeRate = if (currency == Currency.SYP) exchangeRate else null,
-                method = method,
-                customerId = customerId,
-                orderId = orderId,
-                note = note
+                method = PaymentMethod.SHAM_CASH,
+                note = if (note.isBlank()) "تحويل إلى نقد" else note
+            )
+        )
+        return txDao.insert(
+            Transaction(
+                type = TransactionType.TRANSFER_IN,
+                amount = amount,
+                currency = currency,
+                usdEquivalent = usdEq,
+                method = PaymentMethod.CASH,
+                note = if (note.isBlank()) "تحويل من Sham Cash" else note
             )
         )
     }
