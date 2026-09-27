@@ -53,6 +53,25 @@ fun AgentScreen() {
                     }
                 }
             }
+            if (state.paidByCurrency.isNotEmpty()) {
+                item { SectionTitle("المدفوع حسب العملة") }
+                item {
+                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        state.paidByCurrency.forEach { (currency, amount) ->
+                            Card(
+                                shape = RoundedCornerShape(14.dp),
+                                border = androidx.compose.foundation.BorderStroke(1.dp, BorderGray),
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Column(Modifier.padding(12.dp)) {
+                                    Text(currency.arabicLabel, color = TextSecondaryGray, style = MaterialTheme.typography.bodyMedium)
+                                    Text(Formatters.amount(amount, currency), fontWeight = FontWeight.Bold, color = SuccessGreen)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
             item { SectionTitle("سجل الدفعات للوكيلة") }
             if (state.payments.isEmpty()) {
                 item { EmptyState("لا توجد دفعات بعد") }
@@ -65,7 +84,7 @@ fun AgentScreen() {
                                 Text(tx.method.arabicLabel, color = TextSecondaryGray, style = MaterialTheme.typography.bodyMedium)
                                 if (tx.note.isNotBlank()) Text(tx.note, color = TextSecondaryGray, style = MaterialTheme.typography.bodyMedium)
                             }
-                            Text("-${Formatters.usd(tx.usdEquivalent)}", color = DangerRed, fontWeight = FontWeight.Bold)
+                            Text("-${Formatters.amount(tx.amount, tx.currency)}", color = DangerRed, fontWeight = FontWeight.Bold)
                         }
                     }
                 }

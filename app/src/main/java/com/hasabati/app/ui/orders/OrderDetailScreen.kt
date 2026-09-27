@@ -247,7 +247,7 @@ private fun PaymentDialog(
                     }
                 }
                 if (currency != Currency.USD) {
-                    OutlinedTextField(value = rate, onValueChange = { rate = it }, label = { Text("سعر الصرف") }, modifier = Modifier.fillMaxWidth().padding(top = 8.dp))
+                    OutlinedTextField(value = rate, onValueChange = { rate = it }, label = { Text("سعر الصرف (${currency.symbol} لكل 1$)") }, modifier = Modifier.fillMaxWidth().padding(top = 8.dp))
                 }
             }
         },

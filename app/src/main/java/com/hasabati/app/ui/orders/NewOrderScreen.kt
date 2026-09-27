@@ -169,7 +169,7 @@ fun NewOrderScreen(onBack: () -> Unit, onSaved: (Long) -> Unit) {
                     item {
                         OutlinedTextField(
                             value = state.depositExchangeRate, onValueChange = { vm.setDepositExchangeRate(it) },
-                            label = { Text("سعر الصرف (ل.س لكل 1$)") }, modifier = Modifier.fillMaxWidth(),
+                            label = { Text("سعر الصرف (${state.depositCurrency.symbol} لكل 1$)") }, modifier = Modifier.fillMaxWidth(),
                             keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = KeyboardType.Decimal)
                         )
                     }

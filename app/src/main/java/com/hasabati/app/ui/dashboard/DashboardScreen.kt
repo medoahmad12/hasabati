@@ -67,14 +67,12 @@ fun DashboardScreen(
 
                 val cashSypTotal = (snap?.treasury?.cashSyp ?: 0.0) + (snap?.treasury?.shamCashSyp ?: 0.0)
                 val cashSarTotal = (snap?.treasury?.cashSar ?: 0.0) + (snap?.treasury?.shamCashSar ?: 0.0)
-                if (cashSypTotal > 0.5 || cashSarTotal > 0.5) {
-                    Spacer(Modifier.height(14.dp))
-                    Divider(color = Color.White.copy(alpha = 0.2f))
-                    Spacer(Modifier.height(10.dp))
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(24.dp)) {
-                        if (cashSypTotal > 0.5) MiniStat("معي بالليرة", Formatters.syp(cashSypTotal), Color.White.copy(alpha = 0.9f))
-                        if (cashSarTotal > 0.5) MiniStat("معي بالريال", Formatters.sar(cashSarTotal), Color.White.copy(alpha = 0.9f))
-                    }
+                Spacer(Modifier.height(14.dp))
+                Divider(color = Color.White.copy(alpha = 0.2f))
+                Spacer(Modifier.height(10.dp))
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(24.dp)) {
+                    MiniStat("معي بالليرة", Formatters.syp(cashSypTotal), Color.White.copy(alpha = 0.9f))
+                    MiniStat("معي بالريال", Formatters.sar(cashSarTotal), Color.White.copy(alpha = 0.9f))
                 }
             }
         }

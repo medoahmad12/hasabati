@@ -109,7 +109,7 @@ private fun AddExpenseDialog(
                 }
                 if (currency != Currency.USD) {
                     Spacer(Modifier.height(8.dp))
-                    OutlinedTextField(value = rate, onValueChange = { rate = it }, label = { Text("سعر الصرف") }, modifier = Modifier.fillMaxWidth())
+                    OutlinedTextField(value = rate, onValueChange = { rate = it }, label = { Text("سعر الصرف (${currency.symbol} لكل 1$)") }, modifier = Modifier.fillMaxWidth())
                 }
                 Spacer(Modifier.height(8.dp))
                 OutlinedTextField(value = note, onValueChange = { note = it }, label = { Text("ملاحظة") }, modifier = Modifier.fillMaxWidth())
