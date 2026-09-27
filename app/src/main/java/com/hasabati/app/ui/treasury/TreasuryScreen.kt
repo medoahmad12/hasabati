@@ -188,7 +188,7 @@ private fun <T> SegmentedRow(
 }
 
 private fun Modifier.clickable2segmented(onClick: () -> Unit): Modifier =
-    this.then(androidx.compose.foundation.clickable(onClick = onClick))
+    this.clickable(onClick = onClick)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
