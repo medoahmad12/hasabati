@@ -22,3 +22,19 @@ val BorderGray = Color(0xFFEDEDF7)
 // ألوان التدرّج المستخدمة في بطاقات "الوضع المالي" الرئيسية
 val GradientStart = Color(0xFF7C5CFC)
 val GradientEnd = Color(0xFF4B3FBF)
+
+// ================== إضافات Design System (تصميم فقط — لا تغييرات منطقية) ==================
+
+// ألوان حالات كانت متكررة كقيم hex ثابتة داخل عدة شاشات (StatusExt, Dashboard, Treasury).
+// تم تسميتها هنا بنفس القيم تماماً لضمان عدم تغيير أي لون ظاهر، فقط لتوحيد المصدر ومنع التكرار.
+val StatusBlue = Color(0xFF2E86DE)   // "وصل" / معلومات
+val StatusTeal = Color(0xFF0FA3B1)   // "جاهز للتسليم" / حيادي-إيجابي
+
+// نسخ فاتحة من الأخضر/الأحمر تُستخدم فوق خلفيات داكنة (بطاقات التدرّج) لضمان تباين مريح للعين
+// بدل الأبيض/الأحمر الصريح — نفس القيم المستخدمة سابقاً في OrderDetailScreen، فقط موحّدة هنا.
+val OnGradientText = Color.White
+val OnGradientSuccess = Color(0xFF9FE8B5)
+val OnGradientDanger = Color(0xFFF3B6B6)
+
+// خلفية بنفسجية فاتحة جداً تُستخدم لخلفيات الشرائح/الأيقونات الدائرية بدل alpha متفرق في كل شاشة
+val SurfaceLavender = Color(0xFFF1EEFF)
