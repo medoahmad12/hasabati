@@ -35,7 +35,8 @@ fun DashboardScreen(
     onOpenTreasury: () -> Unit,
     onOpenAgent: () -> Unit,
     onOpenCustomersWithBalance: () -> Unit,
-    onOpenArrivedOrders: () -> Unit
+    onOpenArrivedOrders: () -> Unit,
+    onOpenNotifications: () -> Unit = {} // إضافة اختيارية آمنة — لا تكسر أي استدعاء قديم لهذه الشاشة
 ) {
     val vm = hasabatiViewModel { DashboardViewModel(it) }
     val state by vm.uiState.collectAsState()
@@ -46,34 +47,70 @@ fun DashboardScreen(
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
+        // ---------------- ترويسة ترحيب ----------------
         item {
-            Text("حساباتي", style = MaterialTheme.typography.headlineMedium, color = TextPrimaryDark, fontWeight = FontWeight.Bold)
-            Text("نظرة سريعة على وضعك المالي اليوم", color = TextSecondaryGray)
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column {
+                    Text("مرحباً 👋", style = MaterialTheme.typography.headlineMedium, color = TextPrimaryDark, fontWeight = FontWeight.Bold)
+                    Text("إليك ملخص حساباتك اليوم", color = TextSecondaryGray, style = MaterialTheme.typography.bodyMedium)
+                }
+                Box(
+                    modifier = Modifier
+                        .size(44.dp)
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(SurfaceLavender)
+                        .clickable(onClick = onOpenNotifications),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(Icons.Filled.NotificationsNone, contentDescription = "الإشعارات", tint = PurpleAccent)
+                }
+            }
         }
 
+        // ---------------- بطاقة الوضع المالي ----------------
         item {
             GradientHeroCard(modifier = Modifier.fillMaxWidth()) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                     Text("الوضع المالي", color = Color.White.copy(alpha = 0.85f), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
                     Text("💼", fontSize = 22.sp)
                 }
-                Spacer(Modifier.height(16.dp))
+                Spacer(Modifier.height(18.dp))
+
+                // "معي" هو الرقم الأهم بصرياً — يظهر منفرداً وبخط أكبر (تسلسل هرمي واضح)
                 val cashTotal = (snap?.treasury?.cashUsd ?: 0.0) + (snap?.treasury?.shamCashUsd ?: 0.0)
+                Text("معي", color = Color.White.copy(alpha = 0.7f), style = MaterialTheme.typography.bodyMedium)
+                MoneyText(Formatters.usd(cashTotal), color = Color.White, style = MaterialTheme.typography.displaySmall)
+
+                Spacer(Modifier.height(16.dp))
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    MiniStat("معي", Formatters.usd(cashTotal), Color.White)
                     MiniStat("لي", Formatters.usd(snap?.customerReceivablesUsd ?: 0.0), Color(0xFFB9F5D8))
                     MiniStat("عليّ", Formatters.usd(snap?.agentPayableUsd ?: 0.0), Color(0xFFFFD1DC))
                 }
 
                 val cashSypTotal = (snap?.treasury?.cashSyp ?: 0.0) + (snap?.treasury?.shamCashSyp ?: 0.0)
                 val cashSarTotal = (snap?.treasury?.cashSar ?: 0.0) + (snap?.treasury?.shamCashSar ?: 0.0)
-                Spacer(Modifier.height(14.dp))
+                Spacer(Modifier.height(16.dp))
                 Divider(color = Color.White.copy(alpha = 0.2f))
                 Spacer(Modifier.height(10.dp))
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(24.dp)) {
                     MiniStat("معي بالليرة", Formatters.syp(cashSypTotal), Color.White.copy(alpha = 0.9f))
                     MiniStat("معي بالريال", Formatters.sar(cashSarTotal), Color.White.copy(alpha = 0.9f))
                 }
+                Spacer(Modifier.height(6.dp))
+                Text(
+                    "عرض التفاصيل",
+                    color = Color.White,
+                    style = MaterialTheme.typography.labelLarge,
+                    modifier = Modifier
+                        .clip(AppShapes.pill)
+                        .background(Color.White.copy(alpha = 0.14f))
+                        .clickable(onClick = onOpenTreasury)
+                        .padding(horizontal = 14.dp, vertical = 6.dp)
+                )
             }
         }
 
@@ -90,7 +127,7 @@ fun DashboardScreen(
                 item { QuickActionButton("طلب جديد", Icons.Filled.AddShoppingCart, PurpleAccent, onNewOrder) }
                 item { QuickActionButton("تحصيل دفعة", Icons.Filled.Payments, SuccessGreen, onCollectPayment) }
                 item { QuickActionButton("إضافة مصروف", Icons.Filled.Receipt, WarningAmber, onAddExpense) }
-                item { QuickActionButton("دفع للوكيلة", Icons.Filled.LocalShipping, Color(0xFF2E86DE), onPayAgent) }
+                item { QuickActionButton("دفع للوكيلة", Icons.Filled.LocalShipping, StatusBlue, onPayAgent) }
             }
         }
 
@@ -104,13 +141,13 @@ fun DashboardScreen(
             ) {
                 item { StatCard("النقد بالدولار", Formatters.usd(snap?.treasury?.cashUsd ?: 0.0), "💵", SuccessGreen, Modifier.clickable2(onOpenTreasury)) }
                 item { StatCard("النقد بالليرة", Formatters.syp(snap?.treasury?.cashSyp ?: 0.0), "💴", WarningAmber, Modifier.clickable2(onOpenTreasury)) }
-                item { StatCard("النقد بالريال", Formatters.sar(snap?.treasury?.cashSar ?: 0.0), "💰", Color(0xFF2E86DE), Modifier.clickable2(onOpenTreasury)) }
+                item { StatCard("النقد بالريال", Formatters.sar(snap?.treasury?.cashSar ?: 0.0), "💰", StatusBlue, Modifier.clickable2(onOpenTreasury)) }
                 item { StatCard("Sham Cash دولار", Formatters.usd(snap?.treasury?.shamCashUsd ?: 0.0), "📱", PurpleAccent, Modifier.clickable2(onOpenTreasury)) }
                 item { StatCard("Sham Cash ليرة", Formatters.syp(snap?.treasury?.shamCashSyp ?: 0.0), "📱", PurpleAccentLight, Modifier.clickable2(onOpenTreasury)) }
-                item { StatCard("Sham Cash ريال", Formatters.sar(snap?.treasury?.shamCashSar ?: 0.0), "📱", Color(0xFF0FA3B1), Modifier.clickable2(onOpenTreasury)) }
-                item { StatCard("مستحقات العملاء", Formatters.usd(snap?.customerReceivablesUsd ?: 0.0), "👥", Color(0xFF2E86DE), Modifier.clickable2(onOpenCustomersWithBalance)) }
+                item { StatCard("Sham Cash ريال", Formatters.sar(snap?.treasury?.shamCashSar ?: 0.0), "📱", StatusTeal, Modifier.clickable2(onOpenTreasury)) }
+                item { StatCard("مستحقات العملاء", Formatters.usd(snap?.customerReceivablesUsd ?: 0.0), "👥", StatusBlue, Modifier.clickable2(onOpenCustomersWithBalance)) }
                 item { StatCard("المستحق للوكيلة", Formatters.usd(snap?.agentPayableUsd ?: 0.0), "🏢", DangerRed, Modifier.clickable2(onOpenAgent)) }
-                item { StatCard("طلبات وصلت ولم تُسلّم", (snap?.arrivedNotDeliveredCount ?: 0).toString(), "📦", Color(0xFF0FA3B1), Modifier.clickable2(onOpenArrivedOrders)) }
+                item { StatCard("طلبات وصلت ولم تُسلّم", (snap?.arrivedNotDeliveredCount ?: 0).toString(), "📦", StatusTeal, Modifier.clickable2(onOpenArrivedOrders)) }
                 item { StatCard("الربح المحقق", Formatters.usd(snap?.realizedProfitUsd ?: 0.0), "💰", SuccessGreen) }
             }
         }
@@ -118,12 +155,24 @@ fun DashboardScreen(
         if ((snap?.arrivedNotDeliveredCount ?: 0) > 0 || (snap?.customersWithBalanceCount ?: 0) > 0 || (snap?.agentPayableUsd ?: 0.0) > 0.5) {
             item { SectionTitle("يحتاج متابعة") }
             item {
-                Card(shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = Color.White), border = androidx.compose.foundation.BorderStroke(1.dp, BorderGray)) {
-                    Column(Modifier.padding(14.dp)) {
-                        if ((snap?.arrivedNotDeliveredCount ?: 0) > 0) AttentionRow("📦 لديك ${snap?.arrivedNotDeliveredCount} طلبات وصلت ولم تُسلَّم بعد")
-                        if ((snap?.shippingCount ?: 0) > 0) AttentionRow("🚚 لديك ${snap?.shippingCount} طلبات قيد الشحن")
-                        if ((snap?.customersWithBalanceCount ?: 0) > 0) AttentionRow("👥 لديك ${snap?.customersWithBalanceCount} عميلات عليهن مبالغ")
-                        if ((snap?.agentPayableUsd ?: 0.0) > 0.5) AttentionRow("🏢 المستحق للوكيلة ${Formatters.usd(snap?.agentPayableUsd ?: 0.0)}")
+                Card(
+                    shape = AppShapes.medium,
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, BorderGray)
+                ) {
+                    Column(Modifier.padding(6.dp)) {
+                        if ((snap?.arrivedNotDeliveredCount ?: 0) > 0) {
+                            FollowUpRow("📦 لديك ${snap?.arrivedNotDeliveredCount} طلبات وصلت ولم تُسلَّم بعد", StatusTeal, onClick = onOpenArrivedOrders)
+                        }
+                        if ((snap?.shippingCount ?: 0) > 0) {
+                            FollowUpRow("🚚 لديك ${snap?.shippingCount} طلبات قيد الشحن", WarningAmber)
+                        }
+                        if ((snap?.customersWithBalanceCount ?: 0) > 0) {
+                            FollowUpRow("👥 لديك ${snap?.customersWithBalanceCount} عميلات عليهن مبالغ", DangerRed, onClick = onOpenCustomersWithBalance)
+                        }
+                        if ((snap?.agentPayableUsd ?: 0.0) > 0.5) {
+                            FollowUpRow("🏢 المستحق للوكيلة ${Formatters.usd(snap?.agentPayableUsd ?: 0.0)}", PurpleAccent, onClick = onOpenAgent)
+                        }
                     }
                 }
             }
@@ -150,45 +199,19 @@ private fun MiniStat(label: String, value: String, color: Color) {
 }
 
 @Composable
-private fun QuickActionButton(label: String, icon: androidx.compose.ui.graphics.vector.ImageVector, color: Color, onClick: () -> Unit) {
-    Card(
-        onClick = onClick,
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = color.copy(alpha = 0.10f)),
-        modifier = Modifier.fillMaxSize()
-    ) {
-        Column(Modifier.fillMaxSize().padding(12.dp), verticalArrangement = Arrangement.Center) {
-            Icon(icon, contentDescription = label, tint = color)
-            Spacer(Modifier.height(6.dp))
-            Text(label, color = color, fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.bodyMedium)
-        }
-    }
-}
-
-@Composable
-private fun AttentionRow(text: String) {
-    Text(text, modifier = Modifier.padding(vertical = 6.dp), style = MaterialTheme.typography.bodyMedium)
-}
-
-@Composable
 private fun RecentTxRow(tx: com.hasabati.app.data.db.entities.Transaction) {
     val isPositive = tx.type == TransactionType.CUSTOMER_PAYMENT || tx.type == TransactionType.CAPITAL_ADDITION ||
         tx.type == TransactionType.CAPITAL_INITIAL || tx.type == TransactionType.TRANSFER_IN
     val color = if (isPositive) SuccessGreen else DangerRed
     val sign = if (isPositive) "+" else "-"
-    Card(shape = RoundedCornerShape(14.dp), colors = CardDefaults.cardColors(containerColor = Color.White), border = androidx.compose.foundation.BorderStroke(1.dp, BorderGray), modifier = Modifier.fillMaxWidth()) {
-        Row(Modifier.padding(14.dp).fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Column {
-                Text(tx.type.arabicLabel, fontWeight = FontWeight.SemiBold)
-                Text(Formatters.dateTime(tx.createdAt), style = MaterialTheme.typography.bodyMedium, color = TextSecondaryGray)
-                if (tx.note.isNotBlank()) Text(tx.note, style = MaterialTheme.typography.bodyMedium, color = TextSecondaryGray)
-            }
-            Text(
-                "$sign${Formatters.amount(tx.amount, tx.currency)}",
-                color = color, fontWeight = FontWeight.Bold
-            )
-        }
-    }
+    TransactionRow(
+        title = tx.type.arabicLabel,
+        subtitle = Formatters.dateTime(tx.createdAt),
+        note = tx.note.takeIf { it.isNotBlank() },
+        amountText = "$sign${Formatters.amount(tx.amount, tx.currency)}",
+        amountColor = color,
+        modifier = Modifier.fillMaxWidth()
+    )
 }
 
 private fun Modifier.clickable2(onClick: () -> Unit): Modifier =
