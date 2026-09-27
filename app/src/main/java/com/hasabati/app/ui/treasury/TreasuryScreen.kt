@@ -1,5 +1,6 @@
 package com.hasabati.app.ui.treasury
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -22,6 +23,9 @@ import com.hasabati.app.data.db.entities.TransactionType
 import com.hasabati.app.ui.common.*
 import com.hasabati.app.ui.theme.*
 
+private enum class WalletTab { CASH, SHAM_CASH }
+
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TreasuryScreen() {
     val vm = hasabatiViewModel { TreasuryViewModel(it) }
@@ -29,11 +33,73 @@ fun TreasuryScreen() {
     var showTransferDialog by remember { mutableStateOf(false) }
     var showConvertDialog by remember { mutableStateOf(false) }
 
+    // حالة عرض فقط (لا تلمس أي بيانات) لتحديد أي رصيد كبير يُعرض في الأعلى
+    var walletTab by remember { mutableStateOf(WalletTab.CASH) }
+    var currencyTab by remember { mutableStateOf(Currency.USD) }
+
+    val snap = state.snapshot
+    val bigBalance: Double = when (walletTab to currencyTab) {
+        WalletTab.CASH to Currency.USD -> snap.cashUsd
+        WalletTab.CASH to Currency.SYP -> snap.cashSyp
+        WalletTab.CASH to Currency.SAR -> snap.cashSar
+        WalletTab.SHAM_CASH to Currency.USD -> snap.shamCashUsd
+        WalletTab.SHAM_CASH to Currency.SYP -> snap.shamCashSyp
+        else -> snap.shamCashSar
+    }
+    val bigBalanceText = when (currencyTab) {
+        Currency.USD -> Formatters.usd(bigBalance)
+        Currency.SYP -> Formatters.syp(bigBalance)
+        else -> Formatters.sar(bigBalance)
+    }
+
     LazyColumn(
         contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+        verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
-        item { Text("الخزينة", style = MaterialTheme.typography.headlineMedium) }
+        item { Text("الخزينة", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, color = TextPrimaryDark) }
+
+        // ---------------- بطاقة الرصيد الكبير ----------------
+        item {
+            GradientHeroCard(modifier = Modifier.fillMaxWidth()) {
+                // نقدي / شام كاش
+                SegmentedRow(
+                    options = listOf("نقدي" to WalletTab.CASH, "شام كاش" to WalletTab.SHAM_CASH),
+                    selected = walletTab,
+                    onSelect = { walletTab = it }
+                )
+                Spacer(Modifier.height(14.dp))
+                Text("الرصيد المتاح", color = Color.White.copy(alpha = 0.75f), style = MaterialTheme.typography.bodyMedium)
+                MoneyText(bigBalanceText, color = Color.White, style = MaterialTheme.typography.displaySmall)
+                Spacer(Modifier.height(14.dp))
+                SegmentedRow(
+                    options = listOf("USD" to Currency.USD, "ل.س" to Currency.SYP, "SAR" to Currency.SAR),
+                    selected = currencyTab,
+                    onSelect = { currencyTab = it },
+                    light = true
+                )
+            }
+        }
+
+        // ---------------- أزرار التحويل ----------------
+        item {
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                SecondaryButton(
+                    text = "Sham Cash ↔ نقد",
+                    onClick = { showTransferDialog = true },
+                    leadingIcon = Icons.Filled.SwapHoriz,
+                    modifier = Modifier.weight(1f)
+                )
+                PrimaryButton(
+                    text = "تحويل عملات",
+                    onClick = { showConvertDialog = true },
+                    leadingIcon = Icons.Filled.CompareArrows,
+                    modifier = Modifier.weight(1f)
+                )
+            }
+        }
+
+        // ---------------- كل الأرصدة (تفاصيل) ----------------
+        item { SectionTitle("كل الأرصدة") }
         item {
             LazyVerticalGrid(
                 columns = GridCells.Fixed(2),
@@ -41,35 +107,12 @@ fun TreasuryScreen() {
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                item { StatCard("النقد بالدولار", Formatters.usd(state.snapshot.cashUsd), "💵", SuccessGreen) }
-                item { StatCard("النقد بالليرة", Formatters.syp(state.snapshot.cashSyp), "💴", WarningAmber) }
-                item { StatCard("النقد بالريال", Formatters.sar(state.snapshot.cashSar), "💰", Color(0xFF2E86DE)) }
-                item { StatCard("Sham Cash دولار", Formatters.usd(state.snapshot.shamCashUsd), "📱", PurpleAccent) }
-                item { StatCard("Sham Cash ليرة", Formatters.syp(state.snapshot.shamCashSyp), "📱", PurpleAccentLight) }
-                item { StatCard("Sham Cash ريال", Formatters.sar(state.snapshot.shamCashSar), "📱", Color(0xFF0FA3B1)) }
-            }
-        }
-
-        item {
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                OutlinedButton(
-                    onClick = { showTransferDialog = true },
-                    modifier = Modifier.weight(1f),
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = PurpleAccent)
-                ) {
-                    Icon(Icons.Filled.SwapHoriz, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(Modifier.width(6.dp))
-                    Text("Sham Cash ↔ نقد")
-                }
-                Button(
-                    onClick = { showConvertDialog = true },
-                    modifier = Modifier.weight(1f),
-                    colors = ButtonDefaults.buttonColors(containerColor = PurpleAccent)
-                ) {
-                    Icon(Icons.Filled.CompareArrows, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(Modifier.width(6.dp))
-                    Text("تحويل عملات")
-                }
+                item { StatCard("النقد بالدولار", Formatters.usd(snap.cashUsd), "💵", SuccessGreen) }
+                item { StatCard("النقد بالليرة", Formatters.syp(snap.cashSyp), "💴", WarningAmber) }
+                item { StatCard("النقد بالريال", Formatters.sar(snap.cashSar), "💰", StatusBlue) }
+                item { StatCard("Sham Cash دولار", Formatters.usd(snap.shamCashUsd), "📱", PurpleAccent) }
+                item { StatCard("Sham Cash ليرة", Formatters.syp(snap.shamCashSyp), "📱", PurpleAccentLight) }
+                item { StatCard("Sham Cash ريال", Formatters.sar(snap.shamCashSar), "📱", StatusTeal) }
             }
         }
 
@@ -83,7 +126,7 @@ fun TreasuryScreen() {
     }
 
     if (showTransferDialog) {
-        WalletTransferDialog(
+        WalletTransferSheet(
             onDismiss = { showTransferDialog = false },
             onConfirm = { amount, currency ->
                 vm.transferToCash(amount, currency)
@@ -92,7 +135,7 @@ fun TreasuryScreen() {
         )
     }
     if (showConvertDialog) {
-        CurrencyConvertDialog(
+        CurrencyConvertSheet(
             onDismiss = { showConvertDialog = false },
             onConfirm = { amountOut, currencyOut, methodOut, amountIn, currencyIn, methodIn ->
                 vm.convertCurrency(amountOut, currencyOut, methodOut, amountIn, currencyIn, methodIn)
@@ -102,41 +145,84 @@ fun TreasuryScreen() {
     }
 }
 
+/**
+ * Segmented control عام صغير — تصميم فقط، بديل بصري لأزرار FilterChip المتفرقة.
+ */
 @Composable
-private fun WalletTransferDialog(onDismiss: () -> Unit, onConfirm: (Double, Currency) -> Unit) {
+private fun <T> SegmentedRow(
+    options: List<Pair<String, T>>,
+    selected: T,
+    onSelect: (T) -> Unit,
+    light: Boolean = false
+) {
+    val bg = if (light) Color.White.copy(alpha = 0.12f) else Color.White.copy(alpha = 0.14f)
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(50))
+            .background(bg)
+            .padding(4.dp)
+    ) {
+        options.forEach { (label, value) ->
+            val isSelected = value == selected
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .clip(RoundedCornerShape(50))
+                    .background(if (isSelected) Color.White else Color.Transparent)
+                    .clickable2segmented { onSelect(value) }
+                    .padding(vertical = 8.dp),
+                contentAlignment = androidx.compose.ui.Alignment.Center
+            ) {
+                Text(
+                    label,
+                    color = if (isSelected) PurpleAccent else Color.White,
+                    fontWeight = FontWeight.SemiBold,
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
+        }
+    }
+}
+
+private fun Modifier.clickable2segmented(onClick: () -> Unit): Modifier =
+    this.then(androidx.compose.foundation.clickable(onClick = onClick))
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun WalletTransferSheet(onDismiss: () -> Unit, onConfirm: (Double, Currency) -> Unit) {
     var amount by remember { mutableStateOf("") }
     var currency by remember { mutableStateOf(Currency.USD) }
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("تحويل من Sham Cash إلى نقد") },
-        text = {
-            Column {
-                Text("هذا يسحب المبلغ من رصيد Sham Cash ويضيفه إلى النقد بنفس العملة.", color = TextSecondaryGray, style = MaterialTheme.typography.bodyMedium)
-                Spacer(Modifier.height(10.dp))
-                OutlinedTextField(value = amount, onValueChange = { amount = it }, label = { Text("المبلغ") }, modifier = Modifier.fillMaxWidth())
-                Row(Modifier.padding(top = 8.dp)) {
-                    Currency.values().forEach { c ->
-                        FilterChip(selected = currency == c, onClick = { currency = c }, label = { Text(c.arabicLabel) }, modifier = Modifier.padding(end = 8.dp))
-                    }
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState, containerColor = SurfaceWhite) {
+        Column(Modifier.padding(20.dp).padding(bottom = 24.dp)) {
+            Text("تحويل من Sham Cash إلى نقد", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            Spacer(Modifier.height(6.dp))
+            Text("هذا يسحب المبلغ من رصيد Sham Cash ويضيفه إلى النقد بنفس العملة.", color = TextSecondaryGray, style = MaterialTheme.typography.bodyMedium)
+            Spacer(Modifier.height(14.dp))
+            OutlinedTextField(value = amount, onValueChange = { amount = it }, label = { Text("المبلغ") }, shape = AppShapes.small, modifier = Modifier.fillMaxWidth())
+            Row(Modifier.padding(top = 10.dp)) {
+                Currency.values().forEach { c ->
+                    FilterChip(selected = currency == c, onClick = { currency = c }, label = { Text(c.arabicLabel) }, modifier = Modifier.padding(end = 8.dp))
                 }
             }
-        },
-        confirmButton = {
-            TextButton(onClick = {
-                val amt = amount.toDoubleOrNull() ?: return@TextButton
-                onConfirm(amt, currency)
-            }) { Text("تحويل") }
-        },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("إلغاء") } }
-    )
+            Spacer(Modifier.height(18.dp))
+            PrimaryButton(
+                text = "تحويل",
+                onClick = { amount.toDoubleOrNull()?.let { onConfirm(it, currency) } },
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
+    }
 }
 
 /**
  * تحويل عملة إلى عملة أخرى: تُدخل المستخدمة المبلغ الذي "خرج" (مثلاً 1,500,000 ليرة) والمبلغ
  * الذي "دخل" فعلياً بدل ذلك (مثلاً 100 دولار) — بدون أي سعر صرف مجرّد قد يلخبط الاتجاه.
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun CurrencyConvertDialog(
+private fun CurrencyConvertSheet(
     onDismiss: () -> Unit,
     onConfirm: (Double, Currency, PaymentMethod, Double, Currency, PaymentMethod) -> Unit
 ) {
@@ -148,51 +234,64 @@ private fun CurrencyConvertDialog(
     var currencyIn by remember { mutableStateOf(Currency.USD) }
     var methodIn by remember { mutableStateOf(PaymentMethod.CASH) }
 
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("تحويل بين العملات") },
-        text = {
-            Column {
-                Text("من (المبلغ الذي أخرجتِه)", fontWeight = FontWeight.SemiBold)
-                OutlinedTextField(value = amountOut, onValueChange = { amountOut = it }, label = { Text("المبلغ") }, modifier = Modifier.fillMaxWidth())
-                Row(Modifier.padding(top = 6.dp)) {
-                    Currency.values().forEach { c ->
-                        FilterChip(selected = currencyOut == c, onClick = { currencyOut = c }, label = { Text(c.arabicLabel) }, modifier = Modifier.padding(end = 8.dp))
-                    }
-                }
-                Row(Modifier.padding(top = 6.dp)) {
-                    PaymentMethod.values().forEach { m ->
-                        FilterChip(selected = methodOut == m, onClick = { methodOut = m }, label = { Text(m.arabicLabel) }, modifier = Modifier.padding(end = 8.dp))
-                    }
-                }
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState, containerColor = SurfaceWhite) {
+        Column(Modifier.padding(20.dp).padding(bottom = 24.dp)) {
+            Text("تحويل بين العملات", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            Spacer(Modifier.height(14.dp))
 
-                Spacer(Modifier.height(14.dp))
-                Divider()
-                Spacer(Modifier.height(14.dp))
-
-                Text("إلى (المبلغ الذي استلمتِه فعلياً)", fontWeight = FontWeight.SemiBold)
-                OutlinedTextField(value = amountIn, onValueChange = { amountIn = it }, label = { Text("المبلغ") }, modifier = Modifier.fillMaxWidth())
-                Row(Modifier.padding(top = 6.dp)) {
-                    Currency.values().forEach { c ->
-                        FilterChip(selected = currencyIn == c, onClick = { currencyIn = c }, label = { Text(c.arabicLabel) }, modifier = Modifier.padding(end = 8.dp))
-                    }
-                }
-                Row(Modifier.padding(top = 6.dp)) {
-                    PaymentMethod.values().forEach { m ->
-                        FilterChip(selected = methodIn == m, onClick = { methodIn = m }, label = { Text(m.arabicLabel) }, modifier = Modifier.padding(end = 8.dp))
-                    }
+            Text("من (المبلغ الذي أخرجتِه)", fontWeight = FontWeight.SemiBold)
+            OutlinedTextField(value = amountOut, onValueChange = { amountOut = it }, label = { Text("المبلغ") }, shape = AppShapes.small, modifier = Modifier.fillMaxWidth())
+            Row(Modifier.padding(top = 6.dp)) {
+                Currency.values().forEach { c ->
+                    FilterChip(selected = currencyOut == c, onClick = { currencyOut = c }, label = { Text(c.arabicLabel) }, modifier = Modifier.padding(end = 8.dp))
                 }
             }
-        },
-        confirmButton = {
-            TextButton(onClick = {
-                val out = amountOut.toDoubleOrNull() ?: return@TextButton
-                val inn = amountIn.toDoubleOrNull() ?: return@TextButton
-                onConfirm(out, currencyOut, methodOut, inn, currencyIn, methodIn)
-            }) { Text("تحويل") }
-        },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("إلغاء") } }
-    )
+            Row(Modifier.padding(top = 6.dp)) {
+                PaymentMethod.values().forEach { m ->
+                    FilterChip(selected = methodOut == m, onClick = { methodOut = m }, label = { Text(m.arabicLabel) }, modifier = Modifier.padding(end = 8.dp))
+                }
+            }
+
+            Spacer(Modifier.height(16.dp))
+            Divider(color = BorderGray)
+            Spacer(Modifier.height(16.dp))
+
+            Text("إلى (المبلغ الذي استلمتِه فعلياً)", fontWeight = FontWeight.SemiBold)
+            OutlinedTextField(value = amountIn, onValueChange = { amountIn = it }, label = { Text("المبلغ") }, shape = AppShapes.small, modifier = Modifier.fillMaxWidth())
+            Row(Modifier.padding(top = 6.dp)) {
+                Currency.values().forEach { c ->
+                    FilterChip(selected = currencyIn == c, onClick = { currencyIn = c }, label = { Text(c.arabicLabel) }, modifier = Modifier.padding(end = 8.dp))
+                }
+            }
+            Row(Modifier.padding(top = 6.dp)) {
+                PaymentMethod.values().forEach { m ->
+                    FilterChip(selected = methodIn == m, onClick = { methodIn = m }, label = { Text(m.arabicLabel) }, modifier = Modifier.padding(end = 8.dp))
+                }
+            }
+
+            if (amountOut.toDoubleOrNull() != null && amountIn.toDoubleOrNull() != null && amountIn.toDoubleOrNull() != 0.0 && currencyOut != currencyIn) {
+                val rate = amountOut.toDouble() / amountIn.toDouble()
+                Spacer(Modifier.height(12.dp))
+                Text(
+                    "سعر الصرف المحسوب تلقائياً: ${Formatters.amount(rate, currencyOut)} لكل 1 ${currencyIn.arabicLabel}",
+                    color = TextSecondaryGray,
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
+
+            Spacer(Modifier.height(18.dp))
+            PrimaryButton(
+                text = "تحويل",
+                onClick = {
+                    val out = amountOut.toDoubleOrNull() ?: return@PrimaryButton
+                    val inn = amountIn.toDoubleOrNull() ?: return@PrimaryButton
+                    onConfirm(out, currencyOut, methodOut, inn, currencyIn, methodIn)
+                },
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
+    }
 }
 
 @Composable
@@ -200,16 +299,11 @@ private fun TreasuryTxRow(tx: Transaction) {
     val positive = tx.type == TransactionType.CUSTOMER_PAYMENT || tx.type == TransactionType.CAPITAL_ADDITION ||
         tx.type == TransactionType.CAPITAL_INITIAL || tx.type == TransactionType.TRANSFER_IN
     val color = if (positive) SuccessGreen else DangerRed
-    Card(shape = RoundedCornerShape(12.dp), border = androidx.compose.foundation.BorderStroke(1.dp, BorderGray)) {
-        Row(Modifier.padding(12.dp).fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Column {
-                Text(tx.type.arabicLabel, fontWeight = FontWeight.SemiBold)
-                Text("${tx.method.arabicLabel} • ${Formatters.dateTime(tx.createdAt)}", color = TextSecondaryGray, style = MaterialTheme.typography.bodyMedium)
-            }
-            Text(
-                "${if (positive) "+" else "-"}${Formatters.amount(tx.amount, tx.currency)}",
-                color = color, fontWeight = FontWeight.Bold
-            )
-        }
-    }
+    TransactionRow(
+        title = tx.type.arabicLabel,
+        subtitle = "${tx.method.arabicLabel} • ${Formatters.dateTime(tx.createdAt)}",
+        amountText = "${if (positive) "+" else "-"}${Formatters.amount(tx.amount, tx.currency)}",
+        amountColor = color,
+        modifier = Modifier.fillMaxWidth()
+    )
 }
