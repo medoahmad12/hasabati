@@ -1,5 +1,6 @@
 package com.hasabati.app.ui.orders
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -10,6 +11,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -26,8 +28,8 @@ fun OrderDetailScreen(orderId: Long, onBack: () -> Unit) {
     val state by vm.uiState.collectAsState()
     val order = state.order
 
-    var showArrivalDialog by remember { mutableStateOf(false) }
-    var showPaymentDialog by remember { mutableStateOf(false) }
+    var showArrivalSheet by remember { mutableStateOf(false) }
+    var showPaymentSheet by remember { mutableStateOf(false) }
     var showCancelDialog by remember { mutableStateOf(false) }
 
     Scaffold(
@@ -44,7 +46,7 @@ fun OrderDetailScreen(orderId: Long, onBack: () -> Unit) {
         }
 
         LazyColumn(
-            modifier = Modifier.padding(padding).fillMaxSize(),
+            modifier = Modifier.padding(padding).fillMaxSize().background(BackgroundLight),
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
@@ -62,51 +64,57 @@ fun OrderDetailScreen(orderId: Long, onBack: () -> Unit) {
                 item {
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         if (order.status == OrderStatus.SHIPPING) {
-                            Button(onClick = { showArrivalDialog = true }, colors = ButtonDefaults.buttonColors(containerColor = PurpleAccent)) {
-                                Text("تأكيد الوصول")
-                            }
+                            PrimaryButton(text = "تأكيد الوصول", onClick = { showArrivalSheet = true })
                         } else {
                             val next = order.status.next()
                             if (next != null) {
-                                Button(onClick = { vm.advanceStatus() }, colors = ButtonDefaults.buttonColors(containerColor = PurpleAccent)) {
-                                    Text("نقل إلى: ${next.arabicLabel}")
-                                }
+                                PrimaryButton(text = "نقل إلى: ${next.arabicLabel}", onClick = { vm.advanceStatus() })
                             }
                         }
-                        OutlinedButton(onClick = { showCancelDialog = true }, colors = ButtonDefaults.outlinedButtonColors(contentColor = DangerRed)) {
-                            Text("إلغاء الطلب")
-                        }
+                        SecondaryButton(text = "إلغاء الطلب", onClick = { showCancelDialog = true }, contentColor = DangerRed)
+                    }
+                }
+            }
+
+            item { SectionTitle("ملخص الطلب") }
+            item {
+                GradientHeroCard(modifier = Modifier.fillMaxWidth()) {
+                    SummaryRow("إجمالي البيع", Formatters.usd(order.saleTotalUsd), OnGradientText)
+                    SummaryRow("المدفوع", Formatters.usd(state.paidUsd), OnGradientSuccess)
+                    SummaryRow("المتبقي", Formatters.usd(state.remainingUsd), if (state.remainingUsd > 0.009) OnGradientDanger else OnGradientSuccess)
+
+                    Spacer(Modifier.height(10.dp))
+                    val progress = if (order.saleTotalUsd > 0.0) (state.paidUsd / order.saleTotalUsd).toFloat().coerceIn(0f, 1f) else 0f
+                    LinearProgressIndicator(
+                        progress = progress,
+                        color = OnGradientSuccess,
+                        trackColor = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.25f),
+                        modifier = Modifier.fillMaxWidth().height(8.dp).clip(RoundedCornerShape(4.dp))
+                    )
+                    Spacer(Modifier.height(14.dp))
+                    Divider(color = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.2f))
+                    Spacer(Modifier.height(10.dp))
+
+                    if (order.actualCostUsd != null) {
+                        SummaryRow("الربح الفعلي", Formatters.usd(order.saleTotalUsd - order.actualCostUsd), OnGradientSuccess)
+                    } else {
+                        SummaryRow("الربح المتوقع", Formatters.usd(order.saleTotalUsd - order.expectedCostUsd), OnGradientSuccess)
                     }
                 }
             }
 
             item { SectionTitle("المنتجات") }
             items(state.items) { item ->
-                Card(shape = RoundedCornerShape(12.dp), border = androidx.compose.foundation.BorderStroke(1.dp, BorderGray)) {
-                    Column(Modifier.padding(12.dp)) {
+                val profit = item.saleTotal - (item.actualCostTotal ?: item.expectedCostTotal)
+                Card(shape = AppShapes.medium, border = androidx.compose.foundation.BorderStroke(1.dp, BorderGray)) {
+                    Column(Modifier.padding(14.dp)) {
                         Text(item.productName, fontWeight = FontWeight.SemiBold)
                         Text("الكمية: ${item.quantity}", color = TextSecondaryGray, style = MaterialTheme.typography.bodyMedium)
+                        Spacer(Modifier.height(6.dp))
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Text("تكلفة متوقعة: ${Formatters.usd(item.expectedCostTotal)}", style = MaterialTheme.typography.bodyMedium)
-                            if (item.actualCostTotal != null) {
-                                Text("تكلفة فعلية: ${Formatters.usd(item.actualCostTotal!!)}", style = MaterialTheme.typography.bodyMedium, color = WarningAmber)
-                            }
-                            Text("بيع: ${Formatters.usd(item.saleTotal)}", style = MaterialTheme.typography.bodyMedium, color = SuccessGreen)
-                        }
-                    }
-                }
-            }
-
-            item {
-                Card(shape = RoundedCornerShape(14.dp), colors = CardDefaults.cardColors(containerColor = NavySurface)) {
-                    Column(Modifier.padding(14.dp)) {
-                        SummaryRow("إجمالي البيع", Formatters.usd(order.saleTotalUsd), Color2.White)
-                        SummaryRow("المدفوع", Formatters.usd(state.paidUsd), Color2.Green)
-                        SummaryRow("المتبقي", Formatters.usd(state.remainingUsd), if (state.remainingUsd > 0.009) Color2.Red else Color2.Green)
-                        if (order.actualCostUsd != null) {
-                            SummaryRow("الربح الفعلي", Formatters.usd(order.saleTotalUsd - order.actualCostUsd), Color2.Green)
-                        } else {
-                            SummaryRow("الربح المتوقع", Formatters.usd(order.saleTotalUsd - order.expectedCostUsd), Color2.Green)
+                            Text("تكلفة: ${Formatters.usd(item.actualCostTotal ?: item.expectedCostTotal)}", style = MaterialTheme.typography.bodyMedium, color = if (item.actualCostTotal != null) WarningAmber else TextSecondaryGray)
+                            Text("بيع: ${Formatters.usd(item.saleTotal)}", style = MaterialTheme.typography.bodyMedium)
+                            Text("ربح: ${Formatters.usd(profit)}", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, color = if (profit >= 0) SuccessGreen else DangerRed)
                         }
                     }
                 }
@@ -114,11 +122,12 @@ fun OrderDetailScreen(orderId: Long, onBack: () -> Unit) {
 
             if (order.status != OrderStatus.CANCELLED && state.remainingUsd > 0.009) {
                 item {
-                    Button(
-                        onClick = { showPaymentDialog = true },
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = ButtonDefaults.buttonColors(containerColor = SuccessGreen)
-                    ) { Text("تحصيل دفعة") }
+                    PrimaryButton(
+                        text = "تحصيل دفعة",
+                        onClick = { showPaymentSheet = true },
+                        containerColor = SuccessGreen,
+                        modifier = Modifier.fillMaxWidth()
+                    )
                 }
             }
 
@@ -138,32 +147,27 @@ fun OrderDetailScreen(orderId: Long, onBack: () -> Unit) {
                 item { EmptyState("لا توجد عمليات بعد") }
             } else {
                 items(state.transactions) { tx ->
-                    Card(shape = RoundedCornerShape(12.dp), border = androidx.compose.foundation.BorderStroke(1.dp, BorderGray)) {
-                        Row(Modifier.padding(12.dp).fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Column {
-                                Text(tx.type.arabicLabel, fontWeight = FontWeight.SemiBold)
-                                Text(Formatters.dateTime(tx.createdAt), color = TextSecondaryGray, style = MaterialTheme.typography.bodyMedium)
-                            }
-                            Text(
-                                Formatters.amount(tx.amount, tx.currency),
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-                    }
+                    TransactionRow(
+                        title = tx.type.arabicLabel,
+                        subtitle = Formatters.dateTime(tx.createdAt),
+                        amountText = Formatters.amount(tx.amount, tx.currency),
+                        amountColor = TextPrimaryDark,
+                        modifier = Modifier.fillMaxWidth()
+                    )
                 }
             }
             item { Spacer(Modifier.height(50.dp)) }
         }
     }
 
-    if (showArrivalDialog) {
-        ArrivalDialog(items = state.items, onDismiss = { showArrivalDialog = false }, onConfirm = {
-            vm.confirmArrival(it); showArrivalDialog = false
+    if (showArrivalSheet) {
+        ArrivalBottomSheet(items = state.items, onDismiss = { showArrivalSheet = false }, onConfirm = {
+            vm.confirmArrival(it); showArrivalSheet = false
         })
     }
-    if (showPaymentDialog) {
-        PaymentDialog(maxAmount = state.remainingUsd, onDismiss = { showPaymentDialog = false }, onConfirm = { amount, currency, method, rate ->
-            vm.collectPayment(amount, currency, method, rate); showPaymentDialog = false
+    if (showPaymentSheet) {
+        PaymentBottomSheet(maxAmount = state.remainingUsd, onDismiss = { showPaymentSheet = false }, onConfirm = { amount, currency, method, rate ->
+            vm.collectPayment(amount, currency, method, rate); showPaymentSheet = false
         })
     }
     if (showCancelDialog) {
@@ -171,12 +175,6 @@ fun OrderDetailScreen(orderId: Long, onBack: () -> Unit) {
             vm.cancelOrder(it); showCancelDialog = false
         })
     }
-}
-
-private object Color2 {
-    val White = androidx.compose.ui.graphics.Color.White
-    val Green = androidx.compose.ui.graphics.Color(0xFF9FE8B5)
-    val Red = androidx.compose.ui.graphics.Color(0xFFF3B6B6)
 }
 
 @Composable
@@ -187,40 +185,43 @@ private fun SummaryRow(label: String, value: String, color: androidx.compose.ui.
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun ArrivalDialog(
+private fun ArrivalBottomSheet(
     items: List<com.hasabati.app.data.db.entities.OrderItem>,
     onDismiss: () -> Unit,
     onConfirm: (Map<Long, Double>) -> Unit
 ) {
     val costs = remember { mutableStateMapOf<Long, String>().apply { items.forEach { put(it.id, it.expectedUnitCostUsd.toString()) } } }
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("تأكيد الوصول — أدخل التكلفة الفعلية") },
-        text = {
-            Column {
-                items.forEach { item ->
-                    OutlinedTextField(
-                        value = costs[item.id] ?: "",
-                        onValueChange = { costs[item.id] = it },
-                        label = { Text("${item.productName} (تكلفة الوحدة $)") },
-                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                        modifier = Modifier.padding(vertical = 4.dp).fillMaxWidth()
-                    )
-                }
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState, containerColor = SurfaceWhite) {
+        Column(Modifier.padding(20.dp).padding(bottom = 24.dp)) {
+            Text("تأكيد وصول الطلب", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            Text("أدخلي التكلفة الفعلية لكل منتج", color = TextSecondaryGray, style = MaterialTheme.typography.bodyMedium)
+            Spacer(Modifier.height(16.dp))
+            items.forEach { item ->
+                OutlinedTextField(
+                    value = costs[item.id] ?: "",
+                    onValueChange = { costs[item.id] = it },
+                    label = { Text("${item.productName} — تكلفة الوحدة $") },
+                    keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    shape = AppShapes.small,
+                    modifier = Modifier.padding(vertical = 4.dp).fillMaxWidth()
+                )
             }
-        },
-        confirmButton = {
-            TextButton(onClick = {
-                onConfirm(items.associate { it.id to (costs[it.id]?.toDoubleOrNull() ?: it.expectedUnitCostUsd) })
-            }) { Text("تأكيد") }
-        },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("إلغاء") } }
-    )
+            Spacer(Modifier.height(10.dp))
+            PrimaryButton(
+                text = "تأكيد الوصول",
+                onClick = { onConfirm(items.associate { it.id to (costs[it.id]?.toDoubleOrNull() ?: it.expectedUnitCostUsd) }) },
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
+    }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun PaymentDialog(
+private fun PaymentBottomSheet(
     maxAmount: Double,
     onDismiss: () -> Unit,
     onConfirm: (Double, Currency, PaymentMethod, Double?) -> Unit
@@ -229,36 +230,43 @@ private fun PaymentDialog(
     var currency by remember { mutableStateOf(Currency.USD) }
     var method by remember { mutableStateOf(PaymentMethod.CASH) }
     var rate by remember { mutableStateOf("") }
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("تحصيل دفعة") },
-        text = {
-            Column {
-                Text("المتبقي: ${Formatters.usd(maxAmount)}", color = TextSecondaryGray)
-                OutlinedTextField(value = amount, onValueChange = { amount = it }, label = { Text("المبلغ") }, modifier = Modifier.fillMaxWidth())
-                Row(Modifier.padding(top = 8.dp)) {
-                    Currency.values().forEach { c ->
-                        FilterChip(selected = currency == c, onClick = { currency = c }, label = { Text(c.arabicLabel) }, modifier = Modifier.padding(end = 8.dp))
-                    }
-                }
-                Row(Modifier.padding(top = 8.dp)) {
-                    PaymentMethod.values().forEach { m ->
-                        FilterChip(selected = method == m, onClick = { method = m }, label = { Text(m.arabicLabel) }, modifier = Modifier.padding(end = 8.dp))
-                    }
-                }
-                if (currency != Currency.USD) {
-                    OutlinedTextField(value = rate, onValueChange = { rate = it }, label = { Text("سعر الصرف (${currency.symbol} لكل 1$)") }, modifier = Modifier.fillMaxWidth().padding(top = 8.dp))
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState, containerColor = SurfaceWhite) {
+        Column(Modifier.padding(20.dp).padding(bottom = 24.dp)) {
+            Text("تحصيل دفعة", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            Text("المتبقي: ${Formatters.usd(maxAmount)}", color = TextSecondaryGray)
+            Spacer(Modifier.height(12.dp))
+            OutlinedTextField(value = amount, onValueChange = { amount = it }, label = { Text("المبلغ") }, shape = AppShapes.small, modifier = Modifier.fillMaxWidth())
+            Row(Modifier.padding(top = 10.dp)) {
+                Currency.values().forEach { c ->
+                    FilterChip(selected = currency == c, onClick = { currency = c }, label = { Text(c.arabicLabel) }, modifier = Modifier.padding(end = 8.dp))
                 }
             }
-        },
-        confirmButton = {
-            TextButton(onClick = {
-                val amt = amount.toDoubleOrNull() ?: return@TextButton
-                onConfirm(amt, currency, method, if (currency != Currency.USD) rate.toDoubleOrNull() else null)
-            }) { Text("تأكيد") }
-        },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("إلغاء") } }
-    )
+            Row(Modifier.padding(top = 10.dp)) {
+                PaymentMethod.values().forEach { m ->
+                    FilterChip(selected = method == m, onClick = { method = m }, label = { Text(m.arabicLabel) }, modifier = Modifier.padding(end = 8.dp))
+                }
+            }
+            if (currency != Currency.USD) {
+                OutlinedTextField(
+                    value = rate, onValueChange = { rate = it },
+                    label = { Text("سعر الصرف (${currency.symbol} لكل 1$)") },
+                    shape = AppShapes.small,
+                    modifier = Modifier.fillMaxWidth().padding(top = 10.dp)
+                )
+            }
+            Spacer(Modifier.height(18.dp))
+            PrimaryButton(
+                text = "تأكيد",
+                containerColor = SuccessGreen,
+                onClick = {
+                    val amt = amount.toDoubleOrNull() ?: return@PrimaryButton
+                    onConfirm(amt, currency, method, if (currency != Currency.USD) rate.toDoubleOrNull() else null)
+                },
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
+    }
 }
 
 @Composable
