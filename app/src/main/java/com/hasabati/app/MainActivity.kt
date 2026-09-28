@@ -18,6 +18,7 @@ import androidx.compose.ui.platform.LocalContext
 import com.hasabati.app.ui.navigation.HasabatiNavGraph
 import com.hasabati.app.ui.settings.PinLockScreen
 import com.hasabati.app.ui.settings.PinPrefs
+import com.hasabati.app.ui.settings.SplashScreen
 import com.hasabati.app.ui.theme.HasabatiTheme
 
 class MainActivity : ComponentActivity() {
@@ -42,8 +43,11 @@ private fun AppRoot() {
     val pinEnabled by PinPrefs.isEnabled(context).collectAsState(initial = false)
     val savedPin by PinPrefs.pinCode(context).collectAsState(initial = "")
     var unlocked by remember { mutableStateOf(false) }
+    var started by remember { mutableStateOf(false) }
 
-    if (pinEnabled && !unlocked) {
+    if (!started) {
+        SplashScreen(onStart = { started = true })
+    } else if (pinEnabled && !unlocked) {
         PinLockScreen(correctPin = savedPin, onUnlocked = { unlocked = true })
     } else {
         HasabatiNavGraph()

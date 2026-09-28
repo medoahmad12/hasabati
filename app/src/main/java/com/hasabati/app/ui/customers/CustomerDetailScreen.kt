@@ -1,13 +1,14 @@
 package com.hasabati.app.ui.customers
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
@@ -26,6 +27,7 @@ fun CustomerDetailScreen(customerId: Long, onBack: () -> Unit, onOpenOrder: (Lon
     var showPaymentDialog by remember { mutableStateOf(false) }
 
     Scaffold(
+        containerColor = BackgroundLight,
         topBar = {
             TopAppBar(
                 title = { Text(state.customer?.name ?: "العميلة") },
@@ -34,28 +36,35 @@ fun CustomerDetailScreen(customerId: Long, onBack: () -> Unit, onOpenOrder: (Lon
         },
         floatingActionButton = {
             if (state.remainingUsd > 0.009) {
-                ExtendedFloatingActionButton(onClick = { showPaymentDialog = true }, containerColor = SuccessGreen) {
+                ExtendedFloatingActionButton(onClick = { showPaymentDialog = true }, containerColor = SuccessGreen, contentColor = Color.White) {
                     Text("تحصيل دفعة")
                 }
             }
         }
     ) { padding ->
         LazyColumn(
-            modifier = Modifier.padding(padding).fillMaxSize(),
+            modifier = Modifier.padding(padding).fillMaxSize().background(BackgroundLight),
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             item {
                 GradientHeroCard(modifier = Modifier.fillMaxWidth()) {
-                    if (state.customer?.phone?.isNotBlank() == true) {
-                        Text(state.customer?.phone ?: "", color = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.8f))
-                        Spacer(Modifier.height(6.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        InitialAvatar(state.customer?.name ?: "؟", color = Color.White, size = 48.dp)
+                        Spacer(Modifier.width(12.dp))
+                        Column {
+                            Text(state.customer?.name ?: "", color = Color.White, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                            if (state.customer?.phone?.isNotBlank() == true) {
+                                Text(state.customer?.phone ?: "", color = Color.White.copy(alpha = 0.8f), style = MaterialTheme.typography.bodySmall)
+                            }
+                        }
                     }
-                    Text("الرصيد المتبقي", color = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.8f))
-                    Text(
+                    Spacer(Modifier.height(14.dp))
+                    Text("الرصيد المتبقي", color = Color.White.copy(alpha = 0.8f))
+                    MoneyText(
                         Formatters.usd(state.remainingUsd),
-                        color = if (state.remainingUsd > 0.009) Color(0xFFFFD1DC) else Color(0xFFB9F5D8),
-                        style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold
+                        color = if (state.remainingUsd > 0.009) OnGradientDanger else OnGradientSuccess,
+                        style = MaterialTheme.typography.displaySmall
                     )
                 }
             }
@@ -88,7 +97,7 @@ fun CustomerDetailScreen(customerId: Long, onBack: () -> Unit, onOpenOrder: (Lon
                     }
                 }
             }
-            item { Spacer(Modifier.height(70.dp)) }
+            item { Spacer(Modifier.height(80.dp)) }
         }
     }
 
@@ -106,20 +115,20 @@ fun CustomerDetailScreen(customerId: Long, onBack: () -> Unit, onOpenOrder: (Lon
 }
 
 @Composable
-private fun StatementRow(title: String, subtitle: String, amountText: String, color: androidx.compose.ui.graphics.Color, onClick: (() -> Unit)?) {
+private fun StatementRow(title: String, subtitle: String, amountText: String, color: Color, onClick: (() -> Unit)?) {
     Card(
         onClick = { onClick?.invoke() },
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = androidx.compose.ui.graphics.Color.White),
+        shape = AppShapes.medium,
+        colors = CardDefaults.cardColors(containerColor = SurfaceWhite),
         border = androidx.compose.foundation.BorderStroke(1.dp, BorderGray),
         enabled = onClick != null
     ) {
-        Row(Modifier.padding(12.dp).fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+        Row(Modifier.padding(14.dp).fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             Column {
                 Text(title, fontWeight = FontWeight.SemiBold)
-                Text(subtitle, color = TextSecondaryGray, style = MaterialTheme.typography.bodyMedium)
+                Text(subtitle, color = TextSecondaryGray, style = MaterialTheme.typography.bodySmall)
             }
-            Text(amountText, color = color, fontWeight = FontWeight.Bold)
+            MoneyText(amountText, color = color, style = MaterialTheme.typography.titleMedium)
         }
     }
 }
@@ -141,7 +150,7 @@ fun SimplePaymentDialog(
         text = {
             Column {
                 if (maxAmount > 0) Text("المتبقي: ${Formatters.usd(maxAmount)}", color = TextSecondaryGray)
-                OutlinedTextField(value = amount, onValueChange = { amount = it }, label = { Text("المبلغ") }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(value = amount, onValueChange = { amount = it }, label = { Text("المبلغ") }, shape = AppShapes.small, modifier = Modifier.fillMaxWidth())
                 Row(Modifier.padding(top = 8.dp)) {
                     Currency.values().forEach { c ->
                         FilterChip(selected = currency == c, onClick = { currency = c }, label = { Text(c.arabicLabel) }, modifier = Modifier.padding(end = 8.dp))
@@ -153,7 +162,12 @@ fun SimplePaymentDialog(
                     }
                 }
                 if (currency != Currency.USD) {
-                    OutlinedTextField(value = rate, onValueChange = { rate = it }, label = { Text("سعر الصرف (${currency.symbol} لكل 1$)") }, modifier = Modifier.fillMaxWidth().padding(top = 8.dp))
+                    OutlinedTextField(
+                        value = rate, onValueChange = { rate = it },
+                        label = { Text("سعر الصرف (${currency.symbol} لكل 1$)") },
+                        shape = AppShapes.small,
+                        modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
+                    )
                 }
             }
         },

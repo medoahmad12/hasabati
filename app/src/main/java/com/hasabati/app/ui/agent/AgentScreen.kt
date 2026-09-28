@@ -1,14 +1,16 @@
 package com.hasabati.app.ui.agent
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.hasabati.app.data.db.entities.Currency
 import com.hasabati.app.ui.common.*
 import com.hasabati.app.ui.customers.SimplePaymentDialog
 import com.hasabati.app.ui.theme.*
@@ -20,76 +22,86 @@ fun AgentScreen() {
     var showDialog by remember { mutableStateOf(false) }
 
     Scaffold(
+        containerColor = BackgroundLight,
         floatingActionButton = {
-            ExtendedFloatingActionButton(onClick = { showDialog = true }, containerColor = PurpleAccent) {
+            ExtendedFloatingActionButton(onClick = { showDialog = true }, containerColor = PurpleAccent, contentColor = Color.White) {
                 Text("دفع للوكيلة")
             }
         }
     ) { padding ->
         LazyColumn(
-            modifier = Modifier.padding(padding),
+            modifier = Modifier.padding(padding).background(BackgroundLight),
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            item { Text("حساب الوكيلة", style = MaterialTheme.typography.headlineMedium) }
+            item { Text("حساب الوكيلة", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, color = TextPrimaryDark) }
             item {
                 GradientHeroCard(modifier = Modifier.fillMaxWidth()) {
+                    Text("المتبقي للوكيلة", color = Color.White.copy(alpha = 0.8f))
+                    MoneyText(
+                        Formatters.usd(state.remainingUsd),
+                        color = if (state.remainingUsd > 0.009) OnGradientDanger else OnGradientSuccess,
+                        style = MaterialTheme.typography.displaySmall
+                    )
+                    Spacer(Modifier.height(14.dp))
+                    Divider(color = Color.White.copy(alpha = 0.2f))
+                    Spacer(Modifier.height(10.dp))
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text("إجمالي مستحق للوكيلة", color = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.8f))
-                        Text(Formatters.usd(state.totalOwedUsd), color = androidx.compose.ui.graphics.Color.White, fontWeight = FontWeight.Bold)
-                    }
-                    Row(Modifier.fillMaxWidth().padding(top = 8.dp), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text("المدفوع", color = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.8f))
-                        Text(Formatters.usd(state.paidUsd), color = androidx.compose.ui.graphics.Color(0xFFB9F5D8), fontWeight = FontWeight.Bold)
-                    }
-                    Divider(Modifier.padding(vertical = 10.dp), color = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.2f))
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text("المتبقي", color = androidx.compose.ui.graphics.Color.White)
-                        Text(
-                            Formatters.usd(state.remainingUsd),
-                            color = if (state.remainingUsd > 0.009) androidx.compose.ui.graphics.Color(0xFFFFD1DC) else androidx.compose.ui.graphics.Color(0xFFB9F5D8),
-                            style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold
-                        )
+                        Column {
+                            Text("إجمالي المستحق", color = Color.White.copy(alpha = 0.75f), style = MaterialTheme.typography.bodySmall)
+                            Text(Formatters.usd(state.totalOwedUsd), color = Color.White, fontWeight = FontWeight.Bold)
+                        }
+                        Column {
+                            Text("المدفوع", color = Color.White.copy(alpha = 0.75f), style = MaterialTheme.typography.bodySmall)
+                            Text(Formatters.usd(state.paidUsd), color = OnGradientSuccess, fontWeight = FontWeight.Bold)
+                        }
                     }
                 }
             }
+
             if (state.paidByCurrency.isNotEmpty()) {
                 item { SectionTitle("المدفوع حسب العملة") }
                 item {
-                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        state.paidByCurrency.forEach { (currency, amount) ->
-                            Card(
-                                shape = RoundedCornerShape(14.dp),
-                                border = androidx.compose.foundation.BorderStroke(1.dp, BorderGray),
-                                modifier = Modifier.weight(1f)
-                            ) {
-                                Column(Modifier.padding(12.dp)) {
-                                    Text(currency.arabicLabel, color = TextSecondaryGray, style = MaterialTheme.typography.bodyMedium)
-                                    Text(Formatters.amount(amount, currency), fontWeight = FontWeight.Bold, color = SuccessGreen)
-                                }
+                    Card(
+                        shape = AppShapes.medium,
+                        colors = CardDefaults.cardColors(containerColor = SurfaceWhite),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, BorderGray)
+                    ) {
+                        Column(Modifier.padding(14.dp)) {
+                            val maxValue = state.paidByCurrency.values.maxOrNull()?.takeIf { it > 0 } ?: 1.0
+                            state.paidByCurrency.forEach { (currency, amount) ->
+                                ProgressStatRow(
+                                    label = currency.arabicLabel,
+                                    valueText = Formatters.amount(amount, currency),
+                                    progress = (amount / maxValue).toFloat(),
+                                    color = when (currency) {
+                                        Currency.USD -> SuccessGreen
+                                        Currency.SYP -> WarningAmber
+                                        Currency.SAR -> StatusBlue
+                                    }
+                                )
                             }
                         }
                     }
                 }
             }
-            item { SectionTitle("سجل الدفعات للوكيلة") }
+
+            item { SectionTitle("سجل المدفوعات") }
             if (state.payments.isEmpty()) {
                 item { EmptyState("لا توجد دفعات بعد") }
             } else {
                 items(state.payments) { tx ->
-                    Card(shape = RoundedCornerShape(12.dp), border = androidx.compose.foundation.BorderStroke(1.dp, BorderGray)) {
-                        Row(Modifier.padding(12.dp).fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Column {
-                                Text(Formatters.dateTime(tx.createdAt), fontWeight = FontWeight.SemiBold)
-                                Text(tx.method.arabicLabel, color = TextSecondaryGray, style = MaterialTheme.typography.bodyMedium)
-                                if (tx.note.isNotBlank()) Text(tx.note, color = TextSecondaryGray, style = MaterialTheme.typography.bodyMedium)
-                            }
-                            Text("-${Formatters.amount(tx.amount, tx.currency)}", color = DangerRed, fontWeight = FontWeight.Bold)
-                        }
-                    }
+                    TransactionRow(
+                        title = "دفع للوكيلة",
+                        subtitle = "${tx.method.arabicLabel} • ${Formatters.dateTime(tx.createdAt)}",
+                        note = tx.note.takeIf { it.isNotBlank() },
+                        amountText = "-${Formatters.amount(tx.amount, tx.currency)}",
+                        amountColor = DangerRed,
+                        modifier = Modifier.fillMaxWidth()
+                    )
                 }
             }
-            item { Spacer(Modifier.height(70.dp)) }
+            item { Spacer(Modifier.height(80.dp)) }
         }
     }
 

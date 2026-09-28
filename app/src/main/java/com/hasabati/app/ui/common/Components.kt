@@ -359,3 +359,103 @@ fun FollowUpRow(text: String, dotColor: Color, modifier: Modifier = Modifier, on
         Text(text, style = MaterialTheme.typography.bodyMedium, color = TextPrimaryDark)
     }
 }
+
+// ============================================================================================
+// مكوّنات إضافية جديدة (هذه الرسالة) — لدعم تصميم العملاء/الوكيلة/المصاريف/الإعدادات
+// الجديد المطابق للصورة المرجعية: أفاتار دائري، أيقونة فئة ملونة، وشريط تقدّم بسيط.
+// ============================================================================================
+
+/**
+ * أفاتار دائري بحرف أول من الاسم — بديل بصري بسيط لصورة العميلة (لا نملك صور حقيقية).
+ */
+@Composable
+fun InitialAvatar(name: String, modifier: Modifier = Modifier, size: androidx.compose.ui.unit.Dp = 44.dp, color: Color = PurpleAccent) {
+    Box(
+        modifier = modifier
+            .size(size)
+            .clip(RoundedCornerShape(50))
+            .background(color.copy(alpha = 0.15f)),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            name.trim().firstOrNull()?.uppercase() ?: "?",
+            color = color,
+            fontWeight = FontWeight.Bold,
+            style = MaterialTheme.typography.titleMedium
+        )
+    }
+}
+
+/**
+ * أيقونة دائرية ملوّنة لفئة (مصروف، إجراء...) — بديل بصري موحّد بدل إيموجي حر.
+ */
+@Composable
+fun CategoryIcon(icon: ImageVector, color: Color, modifier: Modifier = Modifier, size: androidx.compose.ui.unit.Dp = 40.dp) {
+    Box(
+        modifier = modifier
+            .size(size)
+            .clip(RoundedCornerShape(12.dp))
+            .background(color.copy(alpha = 0.14f)),
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(icon, contentDescription = null, tint = color)
+    }
+}
+
+/**
+ * صف عنوان + شريط تقدّم بسيط + قيمة — يُستخدم في تفصيل "المدفوع حسب العملة" بحساب الوكيلة.
+ */
+@Composable
+fun ProgressStatRow(
+    label: String,
+    valueText: String,
+    progress: Float,
+    color: Color,
+    modifier: Modifier = Modifier
+) {
+    Column(modifier = modifier.fillMaxWidth().padding(vertical = 6.dp)) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            Text(label, style = MaterialTheme.typography.bodyMedium, color = TextSecondaryGray)
+            Text(valueText, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, color = TextPrimaryDark)
+        }
+        Spacer(Modifier.height(6.dp))
+        LinearProgressIndicator(
+            progress = progress.coerceIn(0f, 1f),
+            color = color,
+            trackColor = color.copy(alpha = 0.12f),
+            modifier = Modifier.fillMaxWidth().height(6.dp).clip(RoundedCornerShape(3.dp))
+        )
+    }
+}
+
+/**
+ * عنصر قائمة بسيط للإعدادات: أيقونة + عنوان + عنوان فرعي اختياري + سهم.
+ */
+@Composable
+fun SettingsListItem(
+    icon: ImageVector,
+    title: String,
+    subtitle: String? = null,
+    iconColor: Color = PurpleAccent,
+    onClick: () -> Unit
+) {
+    Card(
+        onClick = onClick,
+        shape = AppShapes.medium,
+        colors = CardDefaults.cardColors(containerColor = SurfaceWhite),
+        border = BorderStroke(1.dp, BorderGray),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Row(Modifier.padding(14.dp).fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            CategoryIcon(icon, iconColor)
+            Spacer(Modifier.width(12.dp))
+            Column(Modifier.weight(1f)) {
+                Text(title, fontWeight = FontWeight.SemiBold)
+                if (subtitle != null) {
+                    Text(subtitle, style = MaterialTheme.typography.bodyMedium, color = TextSecondaryGray)
+                }
+            }
+            Icon(androidx.compose.material.icons.Icons.Filled.ChevronLeft, contentDescription = null, tint = TextSecondaryGray)
+        }
+    }
+}
