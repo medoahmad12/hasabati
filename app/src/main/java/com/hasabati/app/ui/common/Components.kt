@@ -1,6 +1,7 @@
 package com.hasabati.app.ui.common
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -455,7 +456,7 @@ fun SettingsListItem(
                     Text(subtitle, style = MaterialTheme.typography.bodyMedium, color = TextSecondaryGray)
                 }
             }
-            Icon(androidx.compose.material.icons.Icons.Filled.ChevronLeft, contentDescription = null, tint = TextSecondaryGray)
+            Icon(Icons.Filled.ChevronLeft, contentDescription = null, tint = TextSecondaryGray)
         }
     }
 }
